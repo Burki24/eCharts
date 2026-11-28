@@ -10,21 +10,21 @@
 
 ![eCharts – Deine Daten. Dein Überblick. Diagramme für Symcon und IPSView.](docs/images/echarts-readme-hero.png)
 
+[English installation and getting started guide](README.en.md)
+
 eCharts stellt aktuelle und archivierte Symcon-Werte sowie ausgewählte
 Objektbeziehungen als responsive Apache-ECharts-Diagramme dar. Die Library
 enthält **32 Diagrammmodule und ein gemeinsames Gateway**. Native Symcon-Kacheln
 und optionale IPSView-WebContent-Widgets verwenden dieselben Quellen; ihr
 Design kann gemeinsam oder unabhängig eingestellt werden.
 
-Die Library ist als **Beta im Symcon-Modulstore** verfügbar. Über die Suche
-nach **eCharts** findest Du auch die bisherige Veröffentlichung. Rückmeldungen und Fragen können im
-[Ankündigungsthema der Community](https://community.symcon.de/t/144844)
-gestellt werden. Diese Anleitung beschreibt den aktuellen `dev`-Stand;
-der installierte Store-Stand kann davon abweichen.
+Du findest **eCharts** im Symcon-Modulstore. Der Store zeigt Dir die verfügbaren
+Kanäle und verlinkt die Anleitung zur jeweiligen Version. Fragen und Rückmeldungen
+sind im [Ankündigungsthema der Community](https://community.symcon.de/t/144844) willkommen.
 
 ## Voraussetzungen
 
-- IP-Symcon 9.0 oder 9.1 mit PHP 8.5.
+- Symcon ab Version 9.0 mit PHP 8.5.
 - Für wertbasierte Diagramme passende numerische Variablen; StateTimeline und
   die Zustandsdauer von CalendarPie verwenden Boolean-/Integer-Zustände.
   Tree und Graph können auch andere Symcon-Objekte darstellen.
@@ -35,8 +35,9 @@ der installierte Store-Stand kann davon abweichen.
 
 ## Installation und erstes Diagramm
 
-1. Den **Symcon-Modulstore** öffnen, nach **eCharts** suchen und die
-   Beta installieren. Sie enthält das Gateway und alle Diagrammmodule.
+1. Den **Symcon-Modulstore** öffnen, nach **eCharts** suchen und die Bibliothek
+   installieren. Wenn Du bereits die Beta nutzt, öffne den vorhandenen Eintrag
+   für Updates. Deine Diagramminstanzen kannst Du weiterverwenden.
 2. Eine Instanz der gewünschten Diagrammfamilie anlegen. Beim ersten Diagramm
    ein `EChartsGateway` als Parent erstellen; weitere Diagramme mit diesem
    vorhandenen Gateway verbinden. Zusätzliche Gateways sind zulässig, im

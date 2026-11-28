@@ -1,5 +1,9 @@
 # Öffentliche Beta: Store-Unterlagen und Veröffentlichungsstand
 
+Für den Wechsel auf Stable gelten die [deutschen und englischen Store-Unterlagen](STABLE_STORE.md).
+Die Beta 1.431 ist unter **eCharts** mit 32 Diagrammmodulen und einem Gateway
+veröffentlicht. Die folgenden Texte und Abnahmen dokumentieren die frühere Beta.
+
 Stand: 05.11.2026. **eCharts ist als Beta im Symcon-Modulstore
 veröffentlicht.** Der Eigentümer hat die Veröffentlichung bestätigt; die
 [öffentliche Ankündigung vom 03.11.2026](https://community.symcon.de/t/144844)
@@ -28,11 +32,12 @@ in Kachel/IPSView sind im [Tree-JSON-Vertrag](TREE_JSON_CONTRACT.md#abnahmestand
 gesondert dokumentiert. Diese späteren Nachweise werden nicht rückwirkend
 zum Umfang des ersten Store-Stands erklärt.
 
-## Store-Angaben
+## Store-Angaben zur ersten Beta
 
-Der neue Produktname auf `dev` lautet **eCharts**. Beim nächsten Store-Update
-werden Anzeigename und Git-Adresse im bestehenden Beta-Eintrag aktualisiert.
-Die Bundle-ID identifiziert weiterhin dieselbe Bibliothek.
+Der bestehende Store-Eintrag führt inzwischen den Namen **eCharts** und das
+Repository `Burki24/eCharts`. Die Bundle-ID identifiziert weiterhin dieselbe
+Bibliothek. Die Sprach- und Kategorieangaben der Tabelle beziehen sich auf
+die damalige Vorbereitung.
 
 | Feld | Inhalt / Nachweis |
 | --- | --- |
@@ -53,7 +58,7 @@ Die folgenden deutschen Beschreibungstexte bleiben als Release-Unterlagen
 verfügbar. Ihre Existenz im Repository ist keine automatische Änderung am
 Store-Eintrag; weitere Einreichungen nimmt ausschließlich der Eigentümer vor.
 
-## Beschreibung
+## Beschreibung für die erste Beta
 
 ```text
 eCharts stellt aktuelle Variablenwerte, Archivdaten und ausgewählte
@@ -210,8 +215,9 @@ Der Quellcommit-Zeitpunkt in `library.json` ist ebenfalls kein Store-Datum.
 
 Die bereits vor der öffentlichen Ankündigung vorhandenen Migrationsfunktionen
 und Dokumentationseinträge sind in der Beta-Übersicht zusammengeführt. Die
-späteren Radar-/Darstellungsmetadatenkorrekturen und Tree-JSON-Änderungen bleiben
-unter **Unveröffentlicht**, bis ihre jeweilige Store-Zuordnung feststeht.
+späteren Radar-/Darstellungsmetadatenkorrekturen und Tree-JSON-Änderungen waren
+zunächst unter **Unveröffentlicht** gesammelt. Sie sind im Changelog inzwischen
+der Vorbereitung der ersten Stable-Ausgabe zugeordnet.
 Bestehende Änderungseinträge wurden dabei erhalten; aus der Umordnung entsteht
 keine neue Versions- oder Veröffentlichungsbehauptung.
 

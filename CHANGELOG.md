@@ -1,31 +1,13 @@
 # Unveröffentlicht
 
-## Behoben
+# Erste Stable-Ausgabe in Vorbereitung
 
-- Bei den fünf transparenten Windrosen in `EChartsGaugeWind` steht die
-  angezeigte Himmelsrichtung beim Drehen der Rose aufrecht unter dem festen Zeiger.
-- Mehrteilige SVG-Zeiger und -Naben behalten die Position jedes einzelnen
-  Pfades. Auskommentierte Pfade werden übersprungen, unvollständige
-  Zeichenbefehle beim Import gemeldet.
-- SVG-Formen, Zifferblätter und Füllmuster lassen sich auch aus UTF-8-Dateien
-  mit Byte Order Mark (BOM) oder Exportkommentaren vor dem SVG-Element laden.
-- Das Gateway startet nach einem Modulupdate auch mit einem JSLive-Importjournal
-  über 1 MiB. Bestehende Einträge und der Fortschritt unterbrochener Importe
-  bleiben beim Umstellen der alten Eigentumskennungen erhalten.
-
-## Geändert
-
-- **Kacheldesign nach IPSView kopieren** übernimmt auch ungespeicherte Kachelwerte
-  in den IPSView-Designer und aktualisiert dessen Vorschau sofort. **Übernehmen**
-  speichert das Ergebnis. Auch die bisherigen Skriptfunktionen zur Designkopie
-  bearbeiten jetzt den Formularentwurf.
-- Die Bibliothek und ihr GitHub-Repository heißen jetzt **eCharts**.
-  Bibliotheks- und Modul-IDs bleiben für Updates bestehender Installationen erhalten.
-  IPSView nutzt den neuen Gateway-Pfad `/hook/eCharts`. Bestehende
-  Tree-Dokumente und JSLive-Importjournale werden auf die neuen Kennungen überführt.
-- IPSView-Diagramme laden die Apache-ECharts-Laufzeit über den EChartsGateway.
-  Das verkleinert den Symcon-Snapshot, auch bei aus JSLive übernommenen
-  Diagrammen. Bestehende IPSView-Verknüpfungen bleiben erhalten.
+Die erste Stable-Ausgabe bündelt die 32 Diagrammmodule und das gemeinsame
+Gateway der öffentlichen Beta. Bestehende Beta-Instanzen, Quellen und
+Archivwerte können weiterverwendet werden. Das Gateway kann unterstützte
+JSLive-Exporte nach Vorschau und Bestätigung als neue Diagramme übernehmen.
+Der Umfang ist vorbereitet. Version und Veröffentlichungsdatum werden mit
+der Stable-Freigabe eingetragen.
 
 ## Neu
 
@@ -76,7 +58,30 @@
   bleiben als veralteter letzter Stand erkennbar. Bestehende Konfigurationen,
   Designer und Schutzgrenzen bleiben erhalten.
 
+- **Kacheldesign nach IPSView kopieren** übernimmt auch ungespeicherte Kachelwerte
+  in den IPSView-Designer und aktualisiert dessen Vorschau sofort. **Übernehmen**
+  speichert das Ergebnis. Auch die bisherigen Skriptfunktionen zur Designkopie
+  bearbeiten jetzt den Formularentwurf.
+- Die Bibliothek und ihr GitHub-Repository heißen jetzt **eCharts**.
+  Bibliotheks- und Modul-IDs bleiben für Updates bestehender Installationen erhalten.
+  IPSView nutzt den neuen Gateway-Pfad `/hook/eCharts`. Bestehende
+  Tree-Dokumente und JSLive-Importjournale werden auf die neuen Kennungen überführt.
+- IPSView-Diagramme laden die Apache-ECharts-Laufzeit über den EChartsGateway.
+  Das verkleinert den Symcon-Snapshot, auch bei aus JSLive übernommenen
+  Diagrammen. Bestehende IPSView-Verknüpfungen bleiben erhalten.
+
 ## Fixes
+
+- Bei den fünf transparenten Windrosen in `EChartsGaugeWind` steht die
+  angezeigte Himmelsrichtung beim Drehen der Rose aufrecht unter dem festen Zeiger.
+- Mehrteilige SVG-Zeiger und -Naben behalten die Position jedes einzelnen
+  Pfades. Auskommentierte Pfade werden übersprungen, unvollständige
+  Zeichenbefehle beim Import gemeldet.
+- SVG-Formen, Zifferblätter und Füllmuster lassen sich auch aus UTF-8-Dateien
+  mit Byte Order Mark (BOM) oder Exportkommentaren vor dem SVG-Element laden.
+- Das Gateway startet nach einem Modulupdate auch mit einem JSLive-Importjournal
+  über 1 MiB. Bestehende Einträge und der Fortschritt unterbrochener Importe
+  bleiben beim Umstellen der alten Eigentumskennungen erhalten.
 
 - EChartsTimeSeries erklärt im Formular, wann die optionalen Referenzlinien
   und Wertebereiche sinnvoll sind. Verweist eine Markierung auf eine fehlende
@@ -123,8 +128,8 @@ weiterhin automatisch dem aktuellen `dev`-Stand. Das Datum bezeichnet den
 Beginn der öffentlichen Beta, nicht das Veröffentlichungsdatum jeder späteren
 Version. Die Überschrift ist kein Nachweis, dass der aktuelle Entwicklungsstand
 bereits im Store verfügbar ist. Die genaue Version des ersten Store-Stands
-wird daraus nicht rückwirkend abgeleitet. Änderungen oberhalb stehen weiterhin
-unter **Unveröffentlicht**, bis ihr jeweiliger Veröffentlichungsstand feststeht.
+wird daraus nicht rückwirkend abgeleitet. Der vorbereitete Stable-Eintrag oberhalb
+führt die Änderungen für den Wechsel aus der Beta auf.
 
 ## Neu
 

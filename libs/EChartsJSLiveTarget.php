@@ -2,13 +2,14 @@
 
 declare(strict_types=1);
 
-namespace SymconECharts;
+namespace eCharts;
 
 use RuntimeException;
 use Throwable;
 
 require_once __DIR__ . '/EChartsJSLiveRendering.php';
 require_once __DIR__ . '/EChartsJSLiveTargetSnapshot.php';
+require_once __DIR__ . '/EChartsJSLiveOwnership.php';
 require_once __DIR__ . '/EChartsJSLiveLocale.php';
 require_once __DIR__ . '/EChartsJSLivePreview.php';
 
@@ -31,6 +32,23 @@ trait EChartsJSLiveTarget
     public function GetJSLiveOutputGuards(): string
     {
         return $this->DebugFlowCall(__FUNCTION__, __LINE__, fn (): string => $this->ReadAttributeString('JSLiveOutputGuards'), false);
+    }
+
+    public function RefreshJSLiveOutputSeals(string $Marker): void
+    {
+        $this->DebugFlowCall(__FUNCTION__, __LINE__, function () use ($Marker): void
+        {
+            $saved = $this->ReadAttributeString('JSLiveOutputGuards');
+            $guards = json_decode($saved, true, 16, JSON_THROW_ON_ERROR);
+            $current = EChartsJSLiveOwnership::RenewOutputGuards($this->InstanceID, $Marker, $guards);
+            if ($current !== $guards) {
+                $updated = EChartsImportJson::Canonical($current);
+                $this->WriteAttributeString('JSLiveOutputGuards', $updated);
+                if ($this->ReadAttributeString('JSLiveOutputGuards') !== $updated) {
+                    throw new RuntimeException('RECOVERY_REQUIRED: migrated output proof was not persisted.');
+                }
+            }
+        }, true);
     }
 
     public function GetJSLiveImportHTML(bool $IPSView): string
@@ -76,7 +94,7 @@ trait EChartsJSLiveTarget
                 $this->UpdateFormField($prefix . 'JSLiveColorKey', 'image', EChartsJSLivePreview::ColorKey(
                     $model,
                     $this->JSLiveDraftDesign($configuration, $effective),
-                    $this->JSLiveText('Schematic color key: Chart background')
+                    $this->JSLiveText('Chart background')
                 ));
             }
             foreach (['BackgroundColor', 'FontSizePercent', 'ShowTitle', 'ShowLegend', 'ShowTooltip', 'AnimationEnabled'] as $key) {
@@ -246,6 +264,7 @@ trait EChartsJSLiveTarget
         if ($sender === 0 && $message === IPS_KERNELSTARTED) {
             $this->InitializeJSLiveImport();
             $this->RefreshJSLiveImport();
+            $this->RegenerateIPSViewHTMLPages();
         }
         // Current values and running archive windows refresh at the bounded configured cadence;
         // VM_UPDATE subscriptions identify sources without re-reading all archives for each individual event.
@@ -295,7 +314,8 @@ trait EChartsJSLiveTarget
                 'image'        => EChartsJSLivePreview::ColorKey($model, $this->JSLiveDraftDesign(
                     $this->JSLiveDraftValues(),
                     $prefix === 'IPSView' && $this->ReadPropertyBoolean('IPSViewUseTileDesign') ? '' : $prefix
-                ), $this->JSLiveText('Schematic color key: Chart background'))];
+                ), $this->JSLiveText('Chart background'))];
+            $items[] = ['type' => 'Label', 'caption' => sprintf($this->JSLiveText('%s sets the background behind the imported chart.'), $this->JSLiveText('Chart background'))];
             if ($prefix === 'IPSView' && $this->ReadPropertyBoolean('IPSViewUseTileDesign')) {
                 foreach ($items as &$item) {
                     if (str_starts_with($item['name'] ?? '', 'IPSViewJSLive')) {
@@ -369,9 +389,10 @@ trait EChartsJSLiveTarget
     private function SealJSLiveOutputs(): void
     {
         $marker = IPS_GetObject($this->InstanceID)['ObjectInfo'];
-        if (preg_match('/^SymconECharts:JSLive:1:[a-f0-9]{64}:[a-f0-9]{32}$/D', $marker) !== 1) {
+        if (!EChartsJSLiveOwnership::IsValid($marker)) {
             return;
         }
+        $marker = EChartsJSLiveOwnership::Canonical($marker);
         $guards = json_decode($this->ReadAttributeString('JSLiveOutputGuards'), true, 16, JSON_THROW_ON_ERROR);
         foreach (IPS_GetChildrenIDs($this->InstanceID) as $id) {
             $object = IPS_GetObject($id);

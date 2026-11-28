@@ -11,23 +11,24 @@ use Burki24\SymconModuleHelper\IPSViewHTMLPageHelper;
 use Burki24\SymconModuleHelper\ResponsiveVisualizationHelper;
 use Burki24\SymconModuleHelper\VisualizationAssetHelper;
 use Burki24\SymconModuleHelper\VisualizationThemeHelper;
-use SymconECharts\EChartsAnimationDesign;
-use SymconECharts\EChartsAsset;
-use SymconECharts\EChartsBarPreview;
-use SymconECharts\EChartsBarPreviewForm;
-use SymconECharts\EChartsCurrentComparisonSources;
-use SymconECharts\EChartsCurrentSources;
-use SymconECharts\EChartsDesignerSections;
-use SymconECharts\EChartsIPSViewBackground;
-use SymconECharts\EChartsIPSViewDesignForm;
-use SymconECharts\EChartsIPSViewTransport;
-use SymconECharts\EChartsNormalization;
-use SymconECharts\EChartsSourceIdentity;
-use SymconECharts\EChartsSourceImportForm;
-use SymconECharts\EChartsTransientRefresh;
-use SymconECharts\EChartsVariablePresentation;
-use SymconECharts\PictorialBarIcon;
-use SymconECharts\PictorialBarSvg;
+use eCharts\EChartsAnimationDesign;
+use eCharts\EChartsAsset;
+use eCharts\EChartsBarPreview;
+use eCharts\EChartsBarPreviewForm;
+use eCharts\EChartsCurrentComparisonSources;
+use eCharts\EChartsCurrentSources;
+use eCharts\EChartsDesignerSections;
+use eCharts\EChartsIPSViewBackground;
+use eCharts\EChartsIPSViewDesignForm;
+use eCharts\EChartsIPSViewTransport;
+use eCharts\EChartsNormalization;
+use eCharts\EChartsSliderSize;
+use eCharts\EChartsSourceIdentity;
+use eCharts\EChartsSourceImportForm;
+use eCharts\EChartsTransientRefresh;
+use eCharts\EChartsVariablePresentation;
+use eCharts\PictorialBarIcon;
+use eCharts\PictorialBarSvg;
 
 require_once __DIR__ . '/../libs/helper/ConfigurationFormHelper.php';
 require_once __DIR__ . '/../libs/helper/DataFlowHelper.php';
@@ -58,7 +59,7 @@ require_once __DIR__ . '/PictorialBarSvg.php';
 class EChartsPictorialBar extends IPSModuleStrict
 {
     use \Burki24\SymconModuleHelper\DebugFlowHelper;
-    use \SymconECharts\EChartsDebugFlow;
+    use \eCharts\EChartsDebugFlow;
 
     use ConfigurationFormHelper;
     use DataFlowHelper;
@@ -66,7 +67,7 @@ class EChartsPictorialBar extends IPSModuleStrict
     use EChartsBarPreviewForm;
     use EChartsCurrentSources;
     use EChartsSourceImportForm;
-    use SymconECharts\PictorialBarPreview;
+    use eCharts\PictorialBarPreview;
     use EChartsIPSViewDesignForm;
     use EChartsIPSViewTransport;
     use EChartsTransientRefresh;
@@ -99,6 +100,7 @@ class EChartsPictorialBar extends IPSModuleStrict
         'ShowTooltip'             => true,
         'ShowLabels'              => true,
         'ShowValues'              => true,
+        'ZoomSliderSize'          => 0,
         'ShowGrid'                => true,
         'TitleFontSizePercent'    => 100,
         'AxisFontSizePercent'     => 100,
@@ -163,6 +165,7 @@ class EChartsPictorialBar extends IPSModuleStrict
                 }
                 $this->RegisterAnimationProperties($prefix, true, 350, 500);
             }
+            $this->RegisterChartBackgroundProperties();
             $this->RegisterIPSViewHTMLPageProperties();
             $this->RegisterEChartsIPSViewTransport();
             $this->RegisterPropertyBoolean('IPSViewUseTileDesign', true);
@@ -252,7 +255,7 @@ class EChartsPictorialBar extends IPSModuleStrict
                 }
             }
             $form = $this->WithSourceImportForm($form, 'ECPB', $fields);
-            return $debugFlowResult = $this->EncodeConfigurationForm($this->WithBarPreviewForm($form, 'ECPB', $fields));
+            return $debugFlowResult = $this->EncodeChartDesignerForm(__DIR__, $this->WithBarPreviewForm($form, 'ECPB', $fields));
         } catch (\Throwable $debugFlowException) {
             $debugFlowFailed = true;
             $this->DebugFlowException(__FUNCTION__, __LINE__, $debugFlowException);
@@ -271,41 +274,6 @@ class EChartsPictorialBar extends IPSModuleStrict
             if (!$this->HandleIPSViewHTMLPageAction($Ident, $Value)) {
                 throw new InvalidArgumentException('Unknown action: ' . $Ident);
             }
-        } catch (\Throwable $debugFlowException) {
-            $debugFlowFailed = true;
-            $this->DebugFlowException(__FUNCTION__, __LINE__, $debugFlowException);
-            throw $debugFlowException;
-        } finally {
-            $this->DebugFlowEnd(__FUNCTION__, __LINE__, $debugFlowResult, $debugFlowFailed, true);
-        }
-    }
-
-    public function CopyTileDesignToIPSView(): void
-    {
-        $debugFlowResult = null;
-        $debugFlowFailed = false;
-        $this->DebugFlowStart(__FUNCTION__, __LINE__);
-        try {
-            foreach (self::DESIGN_DEFAULTS as $name => $default) {
-                $value = match (gettype($default)) {
-                    'boolean' => $this->ReadPropertyBoolean($name),
-                    'integer' => $this->ReadPropertyInteger($name),
-                    'double'  => $this->ReadPropertyFloat($name),
-                    default   => $this->ReadPropertyString($name)
-                };
-                IPS_SetProperty($this->InstanceID, 'IPSView' . $name, $value);
-            }
-            foreach (['AnimationEnabled', 'AnimationDuration', 'AnimationDurationUpdate', 'AnimationEasing',
-                'AnimationEasingUpdate', 'AnimationDelay', 'AnimationDelayUpdate'] as $name) {
-                $value = match ($name) {
-                    'AnimationEnabled'                         => $this->ReadPropertyBoolean($name),
-                    'AnimationEasing', 'AnimationEasingUpdate' => $this->ReadPropertyString($name),
-                    default                                    => $this->ReadPropertyInteger($name)
-                };
-                IPS_SetProperty($this->InstanceID, 'IPSView' . $name, $value);
-            }
-            IPS_SetProperty($this->InstanceID, 'IPSViewUseTileDesign', false);
-            IPS_ApplyChanges($this->InstanceID);
         } catch (\Throwable $debugFlowException) {
             $debugFlowFailed = true;
             $this->DebugFlowException(__FUNCTION__, __LINE__, $debugFlowException);
@@ -506,7 +474,7 @@ class EChartsPictorialBar extends IPSModuleStrict
 
     private function RenderPictorialBarHTMLPage(bool $ipsView): string
     {
-        return $this->RenderVisualizationHTMLPage($ipsView, [
+        return $this->RenderChartPage($ipsView, [
             'language'           => $this->NormalizeHelperTranslationLanguage($this->ResolveHelperTranslationLanguage()),
             'title'              => 'ECharts PictorialBar',
             'visualizationTheme' => $this->VisualizationThemeCSS() . "\n\n"
@@ -536,7 +504,7 @@ class EChartsPictorialBar extends IPSModuleStrict
                 'ipsViewTransport'  => $ipsView ? $this->EChartsIPSViewTransportOptions() : null
             ],
             'replacements' => [
-                '{{ECHARTS_SCRIPT}}'           => EChartsAsset::PictorialBarJavaScript(),
+                '{{ECHARTS_SCRIPT}}'           => EChartsAsset::RendererScript('pictorial-bar', $ipsView),
                 '{{ECHARTS_THEME_SCRIPT}}'     => EChartsAsset::ThemeJavaScript(),
                 '{{ECHARTS_DESIGN_SCRIPT}}'    => EChartsAsset::DesignJavaScript(),
                 '{{IPSVIEW_TRANSPORT_SCRIPT}}' => $ipsView ? $this->EChartsIPSViewTransportJavaScript() : ''
@@ -570,6 +538,9 @@ class EChartsPictorialBar extends IPSModuleStrict
     /** @return array{Status:int,Message:string}|null */
     private function GetConfigurationError(): ?array
     {
+        if (!$this->ChartBackgroundColorsAreValid()) {
+            return ['Status' => self::STATUS_CONFIGURATION_INVALID, 'Message' => 'Select a valid chart background color.'];
+        }
         try {
             $this->GetValidatedSources();
         } catch (Throwable $exception) {
@@ -630,7 +601,7 @@ class EChartsPictorialBar extends IPSModuleStrict
             return $this->ErrorState($this->ReadAttributeString('LastError') === 'PictorialBar requires non-negative values.'
                 ? 'PictorialBar requires non-negative values.' : 'The PictorialBar values could not be loaded.');
         }
-        return ['schemaVersion' => 1, 'family' => 'pictorialBar', 'status' => 'ready', 'chart' => $chart, 'error' => null];
+        return ['schemaVersion' => 1, 'family' => 'pictorialBar', 'status' => 'ready', 'chart' => $this->WithChartBackground($chart, $ipsView), 'error' => null];
     }
 
     /** @return array<string,mixed> */
@@ -699,6 +670,7 @@ class EChartsPictorialBar extends IPSModuleStrict
     private function IsValidDesign(string $prefix): bool
     {
         if (!EChartsAsset::IsSupportedTheme($this->ReadPropertyString($prefix . 'EChartsTheme')) || !$this->AnimationIsValid($prefix)
+            || !EChartsSliderSize::IsValid($this->ReadPropertyInteger($prefix . 'ZoomSliderSize'))
             || !in_array($this->ReadPropertyString($prefix . 'Orientation'), ['vertical', 'horizontal'], true)
             || !in_array($this->ReadPropertyString($prefix . 'SortOrder'), ['configured', 'ascending', 'descending'], true)
             || !in_array($this->ReadPropertyString($prefix . 'FontFamily'), ['Arial, sans-serif', 'Verdana, sans-serif', 'Georgia, serif', 'monospace'], true)
@@ -815,8 +787,7 @@ class EChartsPictorialBar extends IPSModuleStrict
                 ...$this->IPSViewHTMLPageFormItems('Creates a standalone WebContent variable for IPSView.'),
                 EChartsIPSViewBackground::FormRow(),
                 ['type' => 'CheckBox', 'name' => 'IPSViewUseTileDesign', 'caption' => 'Use Tile design'],
-                ['type'       => 'Button', 'caption' => 'Copy Tile design to IPSView and edit independently',
-                    'onClick' => 'ECPB_CopyTileDesignToIPSView($id); return "MESSAGE:Tile design copied to IPSView.";'],
+                ['type'       => 'Button', 'caption' => 'Copy Tile design to IPSView and edit independently'],
                 ['type'        => 'ExpansionPanel', 'caption' => 'Independent IPSView designer',
                     'expanded' => false, 'items' => $rows]
             ]];

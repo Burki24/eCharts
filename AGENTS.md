@@ -1,15 +1,15 @@
-# Projektregeln für SymconECharts
+# Projektregeln für eCharts
 
 Vor Arbeiten in diesem Repository sind zuerst die zentralen Vorgaben aus
 `../SymconDevelopment/AGENTS.md` und
 `../SymconDevelopment/ARCHITECTURE.md` zu lesen. Die dort referenzierten
 Prinzipien und die für die konkrete Aufgabe relevanten Standards gelten auch
-für SymconECharts. Projektspezifische Ziele und der vorhandene Stand stehen in
+für eCharts. Projektspezifische Ziele und der vorhandene Stand stehen in
 `README.md`, `docs/ENTWICKLUNG.md` und den README-Dateien der Module.
 
 ## Produktumfang und Abgrenzung
 
-- SymconECharts ist die eigenständige Neuentwicklung für Diagramme auf Basis
+- eCharts ist die eigenständige Neuentwicklung für Diagramme auf Basis
   von Apache ECharts. JSLive bleibt ein getrenntes Wartungsprojekt und wird aus
   diesem Repository heraus nicht geändert.
 - Zielplattform sind IP-Symcon 9.0/9.1 und PHP 8.5. Eine gesonderte
@@ -51,7 +51,9 @@ für SymconECharts. Projektspezifische Ziele und der vorhandene Stand stehen in
   Aktuelle Kategorienvergleiche liegen im
   eigenen Gerätemodul `EChartsBarCategory`; historische Balken liegen im
   eigenen Gerätemodul `EChartsBarHistory`, gemäß ADR 0068 mit bis zu 32 Quellen,
-  16 Einheitengruppen und bis zu 32000 Gesamtpunkten. Die ID-stabile flüchtige
+  16 Wertachsen und bis zu 32000 Gesamtpunkten. Gemäß ADR 0116 können
+  TimeSeries und BarHistory einzelnen ungestapelten Reihen eine eigene Achse
+  zuordnen. Die Standardgruppierung erfolgt nach Einheit. Die ID-stabile flüchtige
   Reihenauswahl wird mit TimeSeries geteilt; Fachmodelle bleiben getrennt.
   Waterfall-Balken mit aktuellem
   Startwert, signierten Änderungen und berechneter Endsumme liegen im eigenen
@@ -100,6 +102,13 @@ für SymconECharts. Projektspezifische Ziele und der vorhandene Stand stehen in
   unveränderten Defaults sowie Knoten-/Suchbudgets. Projektion, SVG-Geometrie
   und flüchtige Ansichtsverwaltung liegen zentral unter `libs`; Zustandsregeln
   und deren Bewertung verbleiben ausschließlich bei TreeSystemHealth.
+  ADR 0113 ergänzt eine zusätzliche JSON-Datenquelle ausschließlich für
+  EChartsTree. Sie ist implementiert und per MCP sowie durch den Eigentümer
+  in Kachel und IPSView bestätigt. Der kanonische
+  Vertrag steht in `docs/TREE_JSON_CONTRACT.md`: Datei/Text, Stringvariable und
+  ausdrücklicher Skriptzugriff teilen Validierung und bestehende Darstellung.
+  `SourceMode=objects` bleibt kompatibler Default; Modulidentität, Designs,
+  Objektbaum-/Health-Verträge und Schutzgrenzen bleiben erhalten.
   Frei festgelegte Knoten und Kanten zwischen ausgewählten Symcon-Objekten
   liegen in `EChartsGraph`. Die zuletzt exportierte Zigbee2MQTT-Netzwerktopologie
   liegt im getrennten, nur lesenden Gerätemodul `EChartsGraphZ2M`; es löst keinen
@@ -310,6 +319,11 @@ für SymconECharts. Projektspezifische Ziele und der vorhandene Stand stehen in
 
 ## Modulpräfixe
 
+- `ECWI` gehört zu `EChartsGaugeWind`, GUID
+  `{D807A371-1639-4CDF-8DF7-97001C5AA420}` gemäß [ADR 0118](docs/adr/0118-wind-gauge.md).
+  Die Richtung in Grad und die optionale Geschwindigkeit sind unabhängige aktuelle
+  Messwerte. Beide Ausgaben teilen Windmodell und Renderer.
+
 - `ECRH` ist `EChartsRadarHistory` zugeordnet (Radar History), GUID
   `{A1ABAD81-1878-4F35-A6EE-29B1DE1BCF2D}` gemäß ADR 0111. Historische
   Klassenhäufigkeiten und Referenzzuordnung sind vom aktuellen Radar getrennt.
@@ -427,7 +441,7 @@ für SymconECharts. Projektspezifische Ziele und der vorhandene Stand stehen in
   `../JSLive/docs/adr/0006-maintenance-scope.md`. JSLive dient ausschließlich
   als lesende Referenz, sofern kein eigener Auftrag für dieses Repository
   erteilt wurde.
-- JSLive liefert den Export bestehender Charts; SymconECharts erhält die
+- JSLive liefert den Export bestehender Charts; eCharts erhält die
   passende Übernahmefunktion. Vor der Implementierung ist ein gemeinsamer,
   versionierter Austauschvertrag zu spezifizieren.
 - Der gemeinsame Vertrag `de.burki24.jslive-echarts` 1.0 steht kanonisch in
@@ -460,6 +474,12 @@ für SymconECharts. Projektspezifische Ziele und der vorhandene Stand stehen in
 - Eine Übernahme benötigt Vorschau und ausdrückliche Bestätigung. Sie muss bei
   Wiederholung sicher bleiben, Teilfehler kontrolliert melden und das
   JSLive-Original als Vergleich und Rückfall erhalten.
+- ADR 0112 erlaubt ausschließlich bekannte semantisch gleichwertige Metadaten
+  numerischer Wertdarstellungen bei der anfänglichen Quellenzuordnung. Die
+  migrationsbezogene Policy liegt zentral in `libs/EChartsJSLivePresentation.php`;
+  Originalformatierung und vollständige aktuelle Quell-Fingerabdrücke bleiben
+  erhalten. Echte Format-/Archivänderungen und spätere Snapshot-Änderungen bleiben
+  strikt; `presentationComparisons` macht die Regeln im Bericht sichtbar.
 - Nicht übertragbare Einstellungen, eigene Templates, Skripte sowie
   Chart.js-spezifische Erweiterungen werden sichtbar gemeldet. Skript- oder
   Templateinhalte werden nicht stillschweigend ausgeführt oder als verlustfrei

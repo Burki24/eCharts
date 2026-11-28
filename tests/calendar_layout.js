@@ -32,7 +32,7 @@ function harness(data = model, mode = 'symcon', width = 1100, height = 500, head
     const chart = { setOption: value => { option = value; }, clear() { clears++; }, resize() {}, dispose() {} };
     const window = { SYMC_VISUALIZATION: { mode, state: { schemaVersion: 1, family: 'calendar', status: 'ready', chart: data },
         options: { tileHeaderVisible: mode === 'symcon' && (header), tileHeaderInset: mode === 'symcon' && (header) ? 58 : 0, adaptToBackground: mode === 'ipsview', echartsThemes: { dark: palette, auto: palette },
-            calendarStatePath: '/hook/SymconECharts/state/5000/' + 'a'.repeat(32) }, translations: { 'Daily mean': 'Tagesmittelwert' } },
+            calendarStatePath: '/hook/eCharts/state/5000/' + 'a'.repeat(32) }, translations: { 'Daily mean': 'Tagesmittelwert' } },
         echarts: { init: () => chart }, getComputedStyle: () => ({ color: '' }), addEventListener() {},
         location: { protocol: 'https:', host: 'symcon.example' } };
     const document = { getElementById: element, createElement: () => ({ style: {}, remove() {} }), body: { appendChild() {} } };
@@ -218,6 +218,18 @@ for (const view of views) {
 const shortNarrow = harness(viewModel(views[0]), 'ipsview', 420, 680);
 assert.equal(shortNarrow.option.series[0].label.show, true, 'Short views use actual week counts rather than annual cell density.');
 async function navigation() {
+    const chosen = harness(model, 'ipsview');
+    chosen.window.location = {href: 'data:text/html,chart'};
+    chosen.window.eChartsPeriodSelection = {withPeriod(path) {
+        return new URL(path + '&period=year', 'https://opaque.example').href;
+    }};
+    chosen.window.handleMessage({status: 'ready', viewPeriod: 'year', chart: model});
+    chosen.elements['echarts-calendar-previous'].click();
+    await new Promise(resolve => setImmediate(resolve));
+    assert.match(chosen.requests[0], /^https:\/\/opaque\.example\/hook\/.*offset=1&period=year$/);
+    assert.equal(chosen.option.calendar.range, '2023');
+    chosen.window.handleMessage({status: 'ready', chart: model});
+    assert.equal(chosen.option.calendar.range, '2024', 'Returning to an identically keyed default requires offset zero.');
     for (const view of views) {
         for (const mode of ['symcon', 'ipsview']) {
             const base = viewModel(view);

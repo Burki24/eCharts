@@ -14,6 +14,7 @@ $tests = [
     __DIR__ . '/symcon_strict.php',
     __DIR__ . '/data_protocol.php',
     __DIR__ . '/archive_windows.php',
+    __DIR__ . '/archive_value_axes.php',
     __DIR__ . '/archive_absolute_windows.php',
     __DIR__ . '/archive_states_gateway.php',
     __DIR__ . '/calendar_pie_data.php',
@@ -28,6 +29,8 @@ $tests = [
     __DIR__ . '/jslive_time.php',
     __DIR__ . '/jslive_safety.php',
     __DIR__ . '/jslive_models.php',
+    __DIR__ . '/jslive_radar_dash.php',
+    __DIR__ . '/jslive_presentation_equivalence.php',
     __DIR__ . '/jslive_templates.php',
     __DIR__ . '/jslive_progress_paints.php',
     __DIR__ . '/jslive_plans.php',
@@ -52,6 +55,7 @@ $tests = [
     __DIR__ . '/heatmap_window.php',
     __DIR__ . '/heatmap_comparison_plan.php',
     __DIR__ . '/tree_hierarchy.php',
+    __DIR__ . '/tree_json.php',
     __DIR__ . '/tree_preview.php',
     __DIR__ . '/tree_health.php',
     __DIR__ . '/graph_model.php',
@@ -72,6 +76,10 @@ $tests = [
 ];
 
 $commands = [
+    ['Test two gateway starts with a large legacy import journal', 'php tests/gateway_gauges.php --gateway-journal-start'],
+    ['Test copying unsaved Tile designs in the generated forms', 'php tests/gateway_gauges.php --design-copy-form'],
+    ['Test Tree JSON sources, public API and native form callbacks', 'php tests/gateway_gauges.php --tree-json'],
+    ['Test wind gauge sources and outputs', 'php tests/gateway_gauges.php --gauge-wind'],
     ['Test native JSLive formatting', 'node tests/jslive_format.js'],
     ['Test all native JSLive renderers', 'node tests/jslive_renderers.js'],
     ['Test imported JSLive path and compass geometry', 'node tests/jslive_geometry.js'],
@@ -125,6 +133,7 @@ $commands = [
     ['Test ThemeRiver Gateway and output integration', 'php tests/gateway_gauges.php --theme-river'],
     ['Verify local quality runner', 'php tests/quality.php --help'],
     ['Test persistent IPSView transport', 'node tests/ipsview_transport.js'],
+    ['Test view-local period selection', 'node tests/period_selection.js'],
     ['Test shared ECharts zoom', 'node tests/echarts_zoom.js'],
     ['Test shared ECharts label design', 'node tests/label_design.js'],
     ['Test Time Series tile design layout', 'node tests/time_series_layout.js'],
@@ -151,6 +160,7 @@ $commands = [
     ['Test Funnel layout', 'node tests/funnel_layout.js'],
     ['Test PictorialBar layout', 'node tests/pictorial_bar_layout.js'],
     ['Test Radar layout', 'node tests/radar_layout.js'],
+    ['Test wind compass layout and leaf animation', 'node tests/gauge_wind_layout.js'],
     ['Test Sankey layout', 'node tests/sankey_layout.js'],
     ['Test Calendar layout and navigation', 'node tests/calendar_layout.js'],
     ['Verify vendored helper integrity', 'python3 tests/helper_integrity.py'],
@@ -173,4 +183,4 @@ foreach ($commands as [$label, $command]) {
     }
 }
 
-echo "All SymconECharts tests passed.\n";
+echo "All eCharts tests passed.\n";

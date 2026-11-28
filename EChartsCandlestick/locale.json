@@ -1,6 +1,9 @@
 {
     "translations": {
         "de": {
+            "Show period selection": "Zeitraumauswahl anzeigen",
+            "Chart background": "Diagrammhintergrund",
+            "Select a valid chart background color.": "Bitte eine gültige Farbe für den Diagrammhintergrund wählen.",
             "Fixed historical period": "Fester historischer Zeitraum",
             "From (inclusive)": "Von (einschließlich)",
             "Until (exclusive)": "Bis (ausschließlich)",
@@ -25,6 +28,7 @@
             "Label (optional)": "Beschriftung (optional)",
             "Automatic (theme)": "Automatisch (Theme)",
             "Time range": "Zeitraum",
+            "Custom": "Benutzerdefiniert",
             "Custom duration": "Benutzerdefinierte Dauer",
             "Duration": "Dauer",
             "Duration unit": "Zeiteinheit",
@@ -165,6 +169,7 @@
             "Monospace": "Nichtproportional",
             "Italic title": "Titel kursiv",
             "Italic axis labels": "Achsenbeschriftungen kursiv",
+            "Slider thickness (0 = automatic)": "Reglerdicke (0 = automatisch)",
             "Enable time zoom": "Zeitzoom aktivieren",
             "Time zoom is interactive in the chart.": "Zeitzoom ist im Diagramm interaktiv bedienbar.",
             "Use named comparison panels": "Benannte Vergleichspanels verwenden",

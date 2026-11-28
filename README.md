@@ -1,24 +1,30 @@
-# SymconECharts
+# eCharts
 
 [![Symcon](https://img.shields.io/badge/Symcon-PHPModul-brown.svg)](https://www.symcon.de)
 [![Symcon Version](https://img.shields.io/badge/Symcon%20Version-9.0%2B-blue.svg)](library.json)
 [![License](https://img.shields.io/badge/License-PolyForm--Noncommercial--1.0.0-brightgreen.svg)](LICENSE)
-[![Check Style](https://github.com/Burki24/SymconECharts/actions/workflows/style.yml/badge.svg?branch=dev)](https://github.com/Burki24/SymconECharts/actions/workflows/style.yml?query=branch%3Adev)
-[![Tests](https://github.com/Burki24/SymconECharts/actions/workflows/tests.yml/badge.svg?branch=dev)](https://github.com/Burki24/SymconECharts/actions/workflows/tests.yml?query=branch%3Adev)
+[![Check Style](https://github.com/Burki24/eCharts/actions/workflows/style.yml/badge.svg?branch=dev)](https://github.com/Burki24/eCharts/actions/workflows/style.yml?query=branch%3Adev)
+[![Tests](https://github.com/Burki24/eCharts/actions/workflows/tests.yml/badge.svg?branch=dev)](https://github.com/Burki24/eCharts/actions/workflows/tests.yml?query=branch%3Adev)
 
 [![PayPal.Me](https://img.shields.io/badge/PayPal-Me-lightblue.svg)](#spenden)
 
-![SymconECharts – Deine Daten. Dein Überblick. Diagramme für Symcon und IPSView.](docs/images/symconecharts-readme-hero.png)
+![eCharts – Deine Daten. Dein Überblick. Diagramme für Symcon und IPSView.](docs/images/echarts-readme-hero.png)
 
-SymconECharts stellt aktuelle und archivierte Symcon-Werte sowie ausgewählte
+[English installation and getting started guide](README.en.md)
+
+eCharts stellt aktuelle und archivierte Symcon-Werte sowie ausgewählte
 Objektbeziehungen als responsive Apache-ECharts-Diagramme dar. Die Library
-enthält **31 Diagrammmodule und ein gemeinsames Gateway**. Native Symcon-Kacheln
+enthält **32 Diagrammmodule und ein gemeinsames Gateway**. Native Symcon-Kacheln
 und optionale IPSView-WebContent-Widgets verwenden dieselben Quellen; ihr
 Design kann gemeinsam oder unabhängig eingestellt werden.
 
+Du findest **eCharts** im Symcon-Modulstore. Der Store zeigt Dir die verfügbaren
+Kanäle und verlinkt die Anleitung zur jeweiligen Version. Fragen und Rückmeldungen
+sind im [Ankündigungsthema der Community](https://community.symcon.de/t/144844) willkommen.
+
 ## Voraussetzungen
 
-- IP-Symcon 9.0 oder 9.1 mit PHP 8.5.
+- Symcon ab Version 9.0 mit PHP 8.5.
 - Für wertbasierte Diagramme passende numerische Variablen; StateTimeline und
   die Zustandsdauer von CalendarPie verwenden Boolean-/Integer-Zustände.
   Tree und Graph können auch andere Symcon-Objekte darstellen.
@@ -29,8 +35,9 @@ Design kann gemeinsam oder unabhängig eingestellt werden.
 
 ## Installation und erstes Diagramm
 
-1. Den **Symcon-Modulstore** öffnen, nach **SymconECharts** suchen und die
-   Library installieren. Sie enthält das Gateway und alle Diagrammmodule.
+1. Den **Symcon-Modulstore** öffnen, nach **eCharts** suchen und die Bibliothek
+   installieren. Wenn Du bereits die Beta nutzt, öffne den vorhandenen Eintrag
+   für Updates. Deine Diagramminstanzen kannst Du weiterverwenden.
 2. Eine Instanz der gewünschten Diagrammfamilie anlegen. Beim ersten Diagramm
    ein `EChartsGateway` als Parent erstellen; weitere Diagramme mit diesem
    vorhandenen Gateway verbinden. Zusätzliche Gateways sind zulässig, im
@@ -67,15 +74,16 @@ Archiv- und Ausgabegrenzen der verlinkten Modulanleitung.
 | [EChartsGaugeMulti](EChartsGaugeMulti/README.md) | 2–32 aktuelle Werte mit eigenen Skalen, Quellenauswahl und Seiten. |
 | [EChartsGaugeTacho](EChartsGaugeTacho/README.md) | 2–5 aktuelle Werte als Tacho-Cockpit mit Haupt- und Nebeninstrumenten. |
 | [EChartsGaugeChronograph](EChartsGaugeChronograph/README.md) | 2–5 aktuelle Werte als Chronograph mit Hilfszifferblättern. |
-| [EChartsTimeSeries](EChartsTimeSeries/README.md) | 1–32 historische oder live fortgeschriebene Linien-/Flächenreihen; bis zu 32000 Gesamtpunkte. |
+| [EChartsGaugeWind](EChartsGaugeWind/README.md) | Windrichtung mit beweglichem Zeiger oder drehbarer Windrose, optional mit Windgeschwindigkeit und Rotor. |
+| [EChartsTimeSeries](EChartsTimeSeries/README.md) | 1–32 historische oder live fortgeschriebene Linien-/Flächenreihen mit gemeinsamen oder eigenen Wertachsen, optional gestapelte Flächen für gemeinsame Archivintervalle, bis zu 32000 Gesamtpunkte. |
 | [EChartsBarCategory](EChartsBarCategory/README.md) | 1–100 aktuelle Quellen als einfache, gruppierte oder gestapelte Balken mit Kategoriennavigation. |
-| [EChartsBarHistory](EChartsBarHistory/README.md) | 1–32 Archivquellen als Zeitbalken mit Reihenauswahl; bis zu 32000 Gesamtpunkte. |
+| [EChartsBarHistory](EChartsBarHistory/README.md) | 1–32 Archivquellen als einzelne oder gestapelte Zeitbalken mit Reihenauswahl und optional eigenen Wertachsen und bis zu 32000 Gesamtpunkten. |
 | [EChartsBarWaterfall](EChartsBarWaterfall/README.md) | 2–100 aktuelle Quellen als Bilanz mit optionalen Zwischensummen und Neustarts. |
 | [EChartsBarPolar](EChartsBarPolar/README.md) | 1–100 aktuelle Quellen als Polarbalken mit optionaler Auswahl und Seiten. |
 | [EChartsPie](EChartsPie/README.md) | 1–100 aktuelle Quellen als Kreis, Donut oder Rose mit optionaler Auswahl. |
 | [EChartsScatter](EChartsScatter/README.md) | Historische X/Y-Punktwolken und Bubble-Diagramme; bis zu 16 benannte Vergleichsgruppen. |
 | [EChartsHeatmap](EChartsHeatmap/README.md) | Archiv-Stundenkennzahlen nach Tagen oder Wochentagen, mit Zeitnavigation und bis zu vier Vergleichsansichten. |
-| [EChartsTree](EChartsTree/README.md) | Lesender Symcon-Objektbaum mit bis zu zwölf Nachkommensebenen. |
+| [EChartsTree](EChartsTree/README.md) | Lesender Symcon-Objektbaum oder eigene JSON-Hierarchie aus Datei, Text, Stringvariable oder Skript; bis zu zwölf Nachkommensebenen. |
 | [EChartsTreeSystemHealth](EChartsTreeSystemHealth/README.md) | Objektbaum mit ausdrücklich festgelegten Zustandsregeln; bis zu zwölf Nachkommensebenen. |
 | [EChartsGraph](EChartsGraph/README.md) | Bis zu 300 manuelle Objektknoten und 1000 Verbindungen, optional gerichtet und gewichtet. |
 | [EChartsGraphZ2M](EChartsGraphZ2M/README.md) | Lesende Darstellung einer vorhandenen Zigbee2MQTT-Netzwerkkarte; kein Netzwerkscan. |
@@ -116,12 +124,21 @@ und dem Vergrößerungsbutton. IPSView zeigt keinen zusätzlichen Kachelkopf.
 Die Theme-Auswahl und die geometrische Vorlage sind getrennte Einstellungen.
 
 **Kacheldesign verwenden** ist für IPSView standardmäßig aktiv. Für ein eigenes
-IPSView-Design diesen Schalter ausschalten. In den regulären Designern übernimmt
-der Knopf **Kacheldesign nach IPSView kopieren und unabhängig bearbeiten** das zuletzt gespeicherte
-Kacheldesign einmalig und überschreibt dabei bisherige unabhängige Designwerte.
-Änderungen am Kacheldesign deshalb vor dem Kopieren speichern. Quellen bleiben
-gemeinsam; gesonderte IPSView-Zeiträume und Hintergründe werden unabhängig von
-der Designvererbung gesteuert, soweit das Modul sie anbietet.
+IPSView-Design diesen Schalter ausschalten. **Kacheldesign nach IPSView kopieren und
+unabhängig bearbeiten** kopiert die aktuellen Kachelfelder einschließlich ungespeicherter
+Änderungen in den IPSView-Designer. Die Vorschau zeigt das Ergebnis sofort.
+Mit **Übernehmen** speicherst Du die Einstellungen. Quellen bleiben
+gemeinsam. Ein eigener IPSView-Zeitraum und die Anpassung an den Hintergrund
+des IPSView-Widgets lassen sich separat einstellen.
+
+Die **schematische Farbzuordnung** in jedem Designer zeigt, welchen Teil des
+Diagramms ein Farbfeld verändert. Die **Vorschau** zeigt die gewählten Farben.
+Für einen durchgehend schwarzen Diagrammhintergrund im regulären Designer
+neben der Theme-Auswahl **Diagrammhintergrund** auf Schwarz (`#000000`)
+stellen. Bei aktivem **Kacheldesign verwenden** übernimmt IPSView die Farbe.
+**An IPSView-Hintergrund anpassen** dafür ausschalten. Wer das Widget
+durchscheinen lassen möchte, kann die Anpassung einschalten und seine Tönung
+und Deckkraft wählen. **Automatisch (Theme)** setzt die Diagrammfarbe zurück.
 
 Animationen berücksichtigen die Systemeinstellung für reduzierte Bewegung.
 Reguläre Designer bieten getrennte Zeiten, Bewegungskurven und Verzögerungen
@@ -152,6 +169,21 @@ IPSView-App sind unterschiedliche Clients.
 
 ### Messwerte und Archivzeiträume
 
+Wenn Du zum Beispiel die Temperatur der letzten sechs Stunden und der letzten
+sieben Tage im selben Diagramm sehen möchtest, aktiviere im **Kacheldesigner**
+die Option **Zeitraumauswahl anzeigen**. Unten im Diagramm erscheint ein einzelnes Auswahlfeld.
+Ein Wechsel lädt die Archivdaten des gewählten Zeitraums. Mit der Zoomleiste
+kannst Du anschließend einen Ausschnitt davon vergrößern. **Heute** beginnt um
+Mitternacht in der Symcon-Zeitzone, **24 Stunden** reichen vom aktuellen
+Zeitpunkt einen Tag zurück.
+
+Die Auswahl gilt für die gerade geöffnete Ansicht. Beim nächsten Öffnen startet
+sie wieder mit dem konfigurierten Zeitraum. IPSView übernimmt die Einstellung
+aus dem Kacheldesign oder verwendet die Auswahl im eigenen Designer. Welche
+Zeiträume angeboten werden, hängt vom Diagramm, dem Datenmodus und den
+Archivgrenzen ab. Die Auswahl gibt es in TimeSeries, BarHistory, Scatter,
+Boxplot, Parallel, Candlestick, ThemeRiver, StateTimeline, Calendar und Heatmap.
+
 Pie, BarCategory, BarPolar, PictorialBar, Treemap und Sunburst erlauben eine
 optionale Min/Max-Normalisierung je Quelle. Damit lassen sich unterschiedliche
 Messgrößen relativ vergleichen. Originalwerte und Einheiten bleiben erhalten;
@@ -166,6 +198,11 @@ und Budgetregeln. Fehlende Archivwerte werden nicht pauschal durch null ersetzt.
 Ein größeres Zeitfenster erhöht kein Ladebudget automatisch.
 
 ## Migration von JSLive nach ECharts
+
+Für den Export wird **JSLive Beta 0.113** oder ein neuerer kompatibler Stand
+mit dem Migrationsexport für eCharts benötigt. Beide Libraries einschließlich
+ihrer regulären Helper vor der Übernahme aktualisieren. Ein alter allgemeiner
+JSLive-Konfigurationsexport ist kein ECharts-Übernahmepaket.
 
 Das [Gateway](EChartsGateway/README.md#4-einrichten-der-instanzen-in-symcon)
 prüft JSLive-Exportpakete des Vertrags 1.0 zunächst lesend. Der anschließende
@@ -205,11 +242,11 @@ Die eigenen Beiträge stehen unter der
 [PolyForm Noncommercial License 1.0.0](LICENSE).
 SPDX-Identifier: `PolyForm-Noncommercial-1.0.0`.
 
-Required Notice: Copyright 2026 Burkhard Kneiseler. SymconECharts.
+Required Notice: Copyright 2026 Burkhard Kneiseler. eCharts.
 
 Fremdkomponenten behalten ihre Originallizenzen. Version, Herkunft, Integrität
 und Lizenz stehen in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
-SymconECharts ist kein offizielles Projekt der Apache Software Foundation.
+eCharts ist kein offizielles Projekt der Apache Software Foundation.
 
 ## Spenden
 

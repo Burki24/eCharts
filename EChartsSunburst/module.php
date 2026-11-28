@@ -11,18 +11,18 @@ use Burki24\SymconModuleHelper\IPSViewHTMLPageHelper;
 use Burki24\SymconModuleHelper\ResponsiveVisualizationHelper;
 use Burki24\SymconModuleHelper\VisualizationAssetHelper;
 use Burki24\SymconModuleHelper\VisualizationThemeHelper;
-use SymconECharts\EChartsAnimationDesign;
-use SymconECharts\EChartsAsset;
-use SymconECharts\EChartsBarPreview;
-use SymconECharts\EChartsBarPreviewForm;
-use SymconECharts\EChartsCurrentSources;
-use SymconECharts\EChartsDesignerSections;
-use SymconECharts\EChartsHierarchySources;
-use SymconECharts\EChartsIPSViewBackground;
-use SymconECharts\EChartsIPSViewDesignForm;
-use SymconECharts\EChartsIPSViewTransport;
-use SymconECharts\EChartsTransientRefresh;
-use SymconECharts\TreemapModel;
+use eCharts\EChartsAnimationDesign;
+use eCharts\EChartsAsset;
+use eCharts\EChartsBarPreview;
+use eCharts\EChartsBarPreviewForm;
+use eCharts\EChartsCurrentSources;
+use eCharts\EChartsDesignerSections;
+use eCharts\EChartsHierarchySources;
+use eCharts\EChartsIPSViewBackground;
+use eCharts\EChartsIPSViewDesignForm;
+use eCharts\EChartsIPSViewTransport;
+use eCharts\EChartsTransientRefresh;
+use eCharts\TreemapModel;
 
 require_once __DIR__ . '/../libs/helper/ConfigurationFormHelper.php';
 require_once __DIR__ . '/../libs/helper/DataFlowHelper.php';
@@ -48,7 +48,7 @@ require_once __DIR__ . '/../libs/TreemapModel.php';
 class EChartsSunburst extends IPSModuleStrict
 {
     use \Burki24\SymconModuleHelper\DebugFlowHelper;
-    use \SymconECharts\EChartsDebugFlow;
+    use \eCharts\EChartsDebugFlow;
 
     use ConfigurationFormHelper;
     use DataFlowHelper;
@@ -124,6 +124,7 @@ class EChartsSunburst extends IPSModuleStrict
                 }
                 $this->RegisterAnimationProperties($prefix, true, 350, 500);
             }
+            $this->RegisterChartBackgroundProperties();
             $this->RegisterIPSViewHTMLPageProperties();
             $this->RegisterEChartsIPSViewTransport();
             $this->RegisterPropertyBoolean('IPSViewUseTileDesign', true);
@@ -209,7 +210,7 @@ class EChartsSunburst extends IPSModuleStrict
                     $fields[] = $prefix . $name;
                 }
             }
-            return $debugFlowResult = $this->EncodeConfigurationForm($this->WithBarPreviewForm($form, 'ECSB', $fields));
+            return $debugFlowResult = $this->EncodeChartDesignerForm(__DIR__, $this->WithBarPreviewForm($form, 'ECSB', $fields));
         } catch (\Throwable $debugFlowException) {
             $debugFlowFailed = true;
             $this->DebugFlowException(__FUNCTION__, __LINE__, $debugFlowException);
@@ -229,40 +230,6 @@ class EChartsSunburst extends IPSModuleStrict
                 return;
             }
             throw new InvalidArgumentException('Unknown action: ' . $Ident);
-        } catch (\Throwable $debugFlowException) {
-            $debugFlowFailed = true;
-            $this->DebugFlowException(__FUNCTION__, __LINE__, $debugFlowException);
-            throw $debugFlowException;
-        } finally {
-            $this->DebugFlowEnd(__FUNCTION__, __LINE__, $debugFlowResult, $debugFlowFailed, true);
-        }
-    }
-
-    public function CopyTileDesignToIPSView(): void
-    {
-        $debugFlowResult = null;
-        $debugFlowFailed = false;
-        $this->DebugFlowStart(__FUNCTION__, __LINE__);
-        try {
-            foreach (self::DESIGN_DEFAULTS as $name => $default) {
-                $value = match (gettype($default)) {
-                    'boolean' => $this->ReadPropertyBoolean($name),
-                    'integer' => $this->ReadPropertyInteger($name),
-                    default   => $this->ReadPropertyString($name)
-                };
-                IPS_SetProperty($this->InstanceID, 'IPSView' . $name, $value);
-            }
-            foreach (['AnimationEnabled', 'AnimationDuration', 'AnimationDurationUpdate', 'AnimationEasing',
-                'AnimationEasingUpdate', 'AnimationDelay', 'AnimationDelayUpdate'] as $name) {
-                $value = match ($name) {
-                    'AnimationEnabled'                         => $this->ReadPropertyBoolean($name),
-                    'AnimationEasing', 'AnimationEasingUpdate' => $this->ReadPropertyString($name),
-                    default                                    => $this->ReadPropertyInteger($name)
-                };
-                IPS_SetProperty($this->InstanceID, 'IPSView' . $name, $value);
-            }
-            IPS_SetProperty($this->InstanceID, 'IPSViewUseTileDesign', false);
-            IPS_ApplyChanges($this->InstanceID);
         } catch (\Throwable $debugFlowException) {
             $debugFlowFailed = true;
             $this->DebugFlowException(__FUNCTION__, __LINE__, $debugFlowException);
@@ -593,7 +560,7 @@ class EChartsSunburst extends IPSModuleStrict
 
     private function RenderSunburstHTMLPage(bool $ipsView): string
     {
-        return $this->RenderVisualizationHTMLPage($ipsView, [
+        return $this->RenderChartPage($ipsView, [
             'language'           => $this->NormalizeHelperTranslationLanguage($this->ResolveHelperTranslationLanguage()),
             'title'              => 'ECharts Sunburst',
             'visualizationTheme' => $this->VisualizationThemeCSS() . "\n\n"
@@ -622,7 +589,7 @@ class EChartsSunburst extends IPSModuleStrict
                 'ipsViewTransport'  => $ipsView ? $this->EChartsIPSViewTransportOptions() : null
             ],
             'replacements' => [
-                '{{ECHARTS_SCRIPT}}'           => EChartsAsset::SunburstJavaScript(),
+                '{{ECHARTS_SCRIPT}}'           => EChartsAsset::RendererScript('sunburst', $ipsView),
                 '{{ECHARTS_THEME_SCRIPT}}'     => EChartsAsset::ThemeJavaScript(),
                 '{{ECHARTS_DESIGN_SCRIPT}}'    => EChartsAsset::DesignJavaScript() . "\n" . EChartsAsset::HierarchyValuesJavaScript(),
                 '{{IPSVIEW_TRANSPORT_SCRIPT}}' => $ipsView ? $this->EChartsIPSViewTransportJavaScript() : ''
@@ -655,6 +622,9 @@ class EChartsSunburst extends IPSModuleStrict
     /** @return array{Status:int,Message:string}|null */
     private function GetConfigurationError(): ?array
     {
+        if (!$this->ChartBackgroundColorsAreValid()) {
+            return ['Status' => self::STATUS_DESIGN_INVALID, 'Message' => 'Select a valid chart background color.'];
+        }
         try {
             $this->GetValidatedSources();
         } catch (Throwable $exception) {
@@ -796,7 +766,7 @@ class EChartsSunburst extends IPSModuleStrict
             $this->DebugFlowException(__FUNCTION__, __LINE__, $exception);
             return $this->ErrorState('The Sunburst values could not be loaded.');
         }
-        return ['schemaVersion' => 1, 'family' => 'sunburst', 'status' => 'ready', 'chart' => $chart, 'error' => null];
+        return ['schemaVersion' => 1, 'family' => 'sunburst', 'status' => 'ready', 'chart' => $this->WithChartBackground($chart, $ipsView), 'error' => null];
     }
 
     /** @return array<string,mixed> */
@@ -915,8 +885,7 @@ class EChartsSunburst extends IPSModuleStrict
                 ...$this->IPSViewHTMLPageFormItems('Creates a standalone WebContent variable for IPSView.'),
                 EChartsIPSViewBackground::FormRow(),
                 ['type' => 'CheckBox', 'name' => 'IPSViewUseTileDesign', 'caption' => 'Use Tile design'],
-                ['type'       => 'Button', 'caption' => 'Copy Tile design to IPSView and edit independently',
-                    'onClick' => 'ECSB_CopyTileDesignToIPSView($id); return "MESSAGE:Tile design copied to IPSView.";'],
+                ['type'       => 'Button', 'caption' => 'Copy Tile design to IPSView and edit independently'],
                 ['type'     => 'ExpansionPanel', 'caption' => 'Independent IPSView designer', 'expanded' => false,
                     'items' => $rows]
             ]

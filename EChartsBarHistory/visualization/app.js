@@ -11,9 +11,9 @@
     var currentTheme = null;
     var archiveRefreshFailures = 0;
     var archiveLoadError = 'The Historical Bar values could not be loaded.';
-    var zoomController = window.SymconEChartsZoom;
+    var zoomController = window.eChartsZoom;
     var seriesSelection = window.SYMC_ECHARTS_SERIES_SELECTION.create();
-    var barPatterns = window.SymconEChartsPattern.create(function () {
+    var barPatterns = window.eChartsPattern.create(function () {
         if (typeof window.requestAnimationFrame === 'function') {
             window.requestAnimationFrame(function () { render(currentState); });
         } else if (typeof window.setTimeout === 'function') {
@@ -96,16 +96,19 @@
         var colors = colorsFor(theme);
         var bar = model.bar || {};
         var style = bar.style || {};
+        var horizontal = style.orientation === 'horizontal';
         var series = (Array.isArray(model.series) ? model.series : []).map(function (item, index) {
             return Object.assign({}, item, { id: item.id || 'series-' + index,
                 axisIndex: Number.isInteger(item.axisIndex) ? item.axisIndex : 0 });
         });
+        series = window.eChartsArchiveStack.project(series);
         var selected = seriesSelection.reconcile(series);
         var axes = Array.isArray(model.axes) && model.axes.length > 0
             ? model.axes : [{ unit: String(bar.unit || ''), position: 'left', positionIndex: 0 }];
         var multi = series.length > 1;
         var showLegend = multi || series.some(function (item) { return item.initiallyVisible === false; });
-        var visibleCount = series.filter(function (item) { return selected[item.id]; }).length;
+        var visibleCount = new Set(series.filter(function (item) { return selected[item.id]; })
+            .map(function (item) { return item.stackGroup || item.id; })).size;
         var activeAxes = axes.map(function (_, index) {
             return series.some(function (item) { return item.axisIndex === index && selected[item.id]; });
         });
@@ -139,28 +142,55 @@
         var chartWidth = Math.max(320, Number(chartElement.clientWidth) || 750);
         var chartHeight = Math.max(160, Number(chartElement.clientHeight) || 420);
         var compact = chartHeight < 280;
+        var automaticSliderSize = zoomController.sliderThickness(compact);
+        var zoomSliderSize = zoomController.sliderThickness(compact, style.zoomSliderSize);
         var displayedTitleSize = compact ? Math.min(titleFontSize, 14) : titleFontSize;
         var displayedLegendSize = compact
             ? echartsDesign.fontSizePercent(style.legendFontSizePercent, 10) : legendFontSize;
-        var maximumAxisMargin = Math.max(58, Math.min(190, chartWidth * 0.32));
-        var maximumSideCount = Math.max(axisCounts.left, axisCounts.right);
-        var axisOffsetStep = maximumSideCount > 1
-            ? Math.min(54, (maximumAxisMargin - 58) / (maximumSideCount - 1)) : 0;
-        var leftMargin = axisCounts.left > 0 ? 52 + axisOffsetStep * (axisCounts.left - 1) : 28;
-        var rightMargin = axisCounts.right > 0 ? 52 + axisOffsetStep * (axisCounts.right - 1) : 28;
         var gridTop = headerInset + (showLegend ? (bar.title ? (compact ? 39 : 78) : (compact ? 28 : 46))
             : (bar.title ? (compact ? 32 : 52) : (compact ? 12 : 16)))
             + (bar.title ? Math.max(0, displayedTitleSize - (compact ? 14 : 18)) : 0)
             + (showLegend ? Math.max(0, displayedLegendSize - (compact ? 10 : 12)) : 0);
-        var gridBottom = zoom ? (compact ? 42 : 70) : (compact ? 32 : 58);
+        var maximumSideCount = Math.max(axisCounts.left, axisCounts.right);
+        var axisOffsetStep, leftMargin, rightMargin, gridBottom;
+        if (horizontal) {
+            var labelTime = model.range && Number(model.range.endTimestamp) * 1000 || Date.now();
+            var timeLabelLength = formatTimestamp(labelTime, bar.timeAxisLabelFormat || 'auto').length;
+            leftMargin = Math.min(chartWidth * 0.38, Math.max(48, 20 + timeLabelLength * axisFontSize * 0.65));
+            rightMargin = zoom ? 48 + zoomSliderSize - automaticSliderSize : 24;
+            // Keep space for the bars even when several units share a short tile.
+            var axisMargin = Math.min(axisFontSize * 2 + 14, (chartHeight - gridTop) * 0.28);
+            var extraAxes = Math.max(0, axisCounts.left - 1) + Math.max(0, axisCounts.right - 1);
+            var topMargin = axisCounts.right ? axisMargin : 0;
+            gridBottom = axisCounts.left ? axisMargin : 16;
+            var offsetBudget = Math.max(0, (chartHeight - gridTop) * 0.65 - topMargin - gridBottom);
+            axisOffsetStep = echartsDesign.valueAxisSpacing(style.valueAxisSpacing, axisFontSize * 2.8, offsetBudget, extraAxes);
+            gridTop += topMargin + axisOffsetStep * Math.max(0, axisCounts.right - 1);
+            gridBottom += axisOffsetStep * Math.max(0, axisCounts.left - 1);
+        } else {
+            var maximumAxisMargin = Math.max(58, Math.min(190, chartWidth * 0.32));
+            axisOffsetStep = echartsDesign.valueAxisSpacing(style.valueAxisSpacing, 54, maximumAxisMargin - 58, maximumSideCount - 1);
+            leftMargin = axisCounts.left > 0 ? 52 + axisOffsetStep * (axisCounts.left - 1) : 28;
+            rightMargin = axisCounts.right > 0 ? 52 + axisOffsetStep * (axisCounts.right - 1) : 28;
+            gridBottom = zoom ? (compact ? 42 : 70) : (compact ? 32 : 58);
+            if (zoom) {
+                var availableExtra = Math.max(0, Math.floor(chartHeight - gridTop - gridBottom - 24));
+                zoomSliderSize = Math.min(zoomSliderSize, automaticSliderSize + availableExtra);
+                gridBottom += zoomSliderSize - automaticSliderSize;
+            }
+        }
         var plotWidth = chartWidth - leftMargin - rightMargin;
-        var timeTickCount = Math.max(2, Math.floor(plotWidth / (axisFontSize * 10)));
-        var valueTickCount = Math.max(2, Math.floor((chartHeight - gridTop - gridBottom - 20) / (axisFontSize * 2)));
-        var dataZoom = zoomController.timeAxisOptions(zoom, bootstrap.mode, compact ? 18 : 22, compact);
+        var plotHeight = chartHeight - gridTop - gridBottom - 20;
+        var timeTickCount = Math.max(2, Math.floor(horizontal ? plotHeight / (axisFontSize * 2) : plotWidth / (axisFontSize * 10)));
+        var valueTickCount = Math.max(2, Math.floor(horizontal ? plotWidth / (axisFontSize * 6) : plotHeight / (axisFontSize * 2)));
+        var dataZoom = zoomController.timeAxisOptions(zoom, bootstrap.mode, compact ? 18 : 22, compact, horizontal, zoomSliderSize);
+        if (horizontal && zoom) {
+            dataZoom[1].top = gridTop;
+            dataZoom[1].bottom = gridBottom;
+        }
 
         return {
-            backgroundColor: bootstrap.mode === 'ipsview' && bootstrap.options.adaptToBackground === true
-                ? 'transparent' : colors.background,
+            backgroundColor: echartsDesign.chartBackground(bootstrap, model, colors.background),
             ...echartsDesign.animationOptions(style, {
                 enabled: true, initialDuration: 350, updateDuration: 500
             }),
@@ -210,7 +240,9 @@
                 right: rightMargin,
                 bottom: gridBottom,
                 left: leftMargin,
-                containLabel: true
+                // Keep the inverse time axis stable when dataZoom filters its extent.
+                containLabel: !horizontal,
+                ...(horizontal ? { outerBoundsMode: 'none' } : {})
             },
             tooltip: {
                 trigger: 'axis',
@@ -232,8 +264,9 @@
                 }
             },
             dataZoom: dataZoom,
-            xAxis: {
+            [horizontal ? 'yAxis' : 'xAxis']: {
                 type: 'time',
+                inverse: horizontal,
                 splitNumber: timeTickCount,
                 min: model.range && Number.isFinite(Number(model.range.startTimestamp))
                     ? Number(model.range.startTimestamp) * 1000 : null,
@@ -243,13 +276,14 @@
                     color: axisColor,
                     fontSize: axisFontSize,
                     hideOverlap: true,
+                    ...(horizontal ? { width: leftMargin - 14, overflow: 'truncate' } : {}),
                     formatter: function (value) { return formatTimestamp(value, bar.timeAxisLabelFormat || 'auto'); }
                 },
-                axisLine: { lineStyle: { color: axisLineColor } },
+                axisLine: { onZero: !horizontal, lineStyle: { color: axisLineColor } },
                 axisTick: { lineStyle: { color: axisLineColor } },
                 splitLine: { show: false }
             },
-            yAxis: (function () {
+            [horizontal ? 'xAxis' : 'yAxis']: (function () {
                 var valueAxes = normalizedAxes.map(function (entry) {
                     var axis = entry.axis;
                     var firstSeries = series.findIndex(function (item) {
@@ -262,8 +296,11 @@
                         type: 'value',
                         splitNumber: valueTickCount,
                         name: String(axis.unit || ''),
-                        position: entry.position,
+                        ...(Number.isFinite(axis.minimum) && Number.isFinite(axis.maximum)
+                            ? { min: axis.minimum, max: axis.maximum } : {}),
+                        position: horizontal ? (entry.position === 'left' ? 'bottom' : 'top') : entry.position,
                         offset: entry.positionIndex * axisOffsetStep,
+                        ...(horizontal ? { nameLocation: 'middle', nameGap: axisFontSize + 12 } : {}),
                         nameTextStyle: { color: color, fontSize: axisFontSize },
                         axisLabel: { color: color, fontSize: axisFontSize, hideOverlap: true },
                         axisLine: { show: true, lineStyle: { color: multi ? color : axisLineColor } },
@@ -279,7 +316,7 @@
             series: series.map(function (item, index) {
                 var color = seriesColors[index];
                 var fill = style.barFillMode === 'gradient' ? {
-                    type: 'linear', x: 0, y: 1, x2: 0, y2: 0,
+                    type: 'linear', x: 0, y: horizontal ? 0 : 1, x2: horizontal ? 1 : 0, y2: 0,
                     colorStops: [
                         { offset: 0, color: color },
                         { offset: 1, color: style.barGradientColor || colors.background }
@@ -294,7 +331,9 @@
                     id: item.id || 'series-' + index,
                     name: item.id || 'series-' + index,
                     type: 'bar',
-                    yAxisIndex: Number.isInteger(item.axisIndex) ? item.axisIndex : 0,
+                    stack: item.stackGroup ? 'stack-' + item.stackGroup : undefined,
+                    [horizontal ? 'xAxisIndex' : 'yAxisIndex']: item.axisIndex,
+                    encode: { x: horizontal ? 1 : 0, y: horizontal ? 0 : 1 },
                     barGap: '20%',
                     barMaxWidth: visibleCount > 1
                         ? Math.max(0.5, Math.round(480 * Math.max(20, Math.min(100, Number(style.barWidthPercent) || 70)) / 100 / visibleCount) / 10)
@@ -302,11 +341,11 @@
                     itemStyle: {
                         color: fill,
                         opacity: echartsDesign.opacityFromPercent(style.barOpacityPercent, 100),
-                        borderRadius: [radius, radius, 0, 0]
+                        borderRadius: horizontal ? [0, radius, radius, 0] : [radius, radius, 0, 0]
                     },
                     label: {
                         show: style.showValues === true,
-                        ...echartsDesign.valueLabel(style, 'top',
+                        ...echartsDesign.valueLabel(style, horizontal ? 'right' : 'top',
                             ['top', 'bottom', 'left', 'right', 'inside', 'insideTop', 'insideBottom',
                                 'insideLeft', 'insideRight'], 5),
                         color: valueColor,
@@ -409,6 +448,9 @@
                 && currentState.chart && currentState.chart.bar
                 && currentState.chart.bar.style
                 && currentState.chart.bar.style.enableZoom === true;
+        }, function () {
+            return currentState.chart.bar.style.orientation === 'horizontal'
+                ? { vertical: true, inverse: true } : null;
         });
     }
     window.addEventListener('beforeunload', function () {

@@ -4,7 +4,7 @@ Stellt Archivwerte von einer bis 32 numerischen Symcon-Variablen als Balken
 entlang einer Zeitachse dar. Für aktuelle Kategorienvergleiche verwenden Sie
 [EChartsBarCategory](../EChartsBarCategory/README.md).
 
-Installation: Im **Symcon-Modulstore** nach **SymconECharts** suchen.
+Installation: Im **Symcon-Modulstore** nach **eCharts** suchen.
 [Voraussetzungen und Einrichtung](../README.md#installation-und-erstes-diagramm)
 (IP-Symcon 9.0/9.1, PHP 8.5, gemeinsames Gateway).
 Alle technischen Felder, Standardwerte und Quellenparameter stehen in der
@@ -21,10 +21,38 @@ Für IPSView bei Bedarf die zusätzliche HTML-Ausgabe einschalten.
 Jede Variablen-ID darf nur einmal vorkommen. Eigene Beschriftung, Farbe,
 Formatierung und Reduzierer sind je Quelle wählbar. Ohne eigene Beschriftung
 erscheint der aktuelle Variablenname; gleiche Namen bleiben getrennte Reihen.
-Gleichzeitige Balken stehen nebeneinander. Jede wirksame Einheit erhält eine
-eigene Wertachse. Quellen derselben Einheit teilen diese Achse; widersprüchliche
-explizite Seitenwahlen für dieselbe Einheit sind ungültig. Die Listenreihenfolge
-bestimmt die Reihen- und Achsenreihenfolge. Unterstützt sind bis zu 16 Einheiten.
+Standardmäßig stehen gleichzeitige Balken nebeneinander. Quellen mit derselben
+Einheit teilen sich eine Wertachse. Für zwei Temperaturen mit unterschiedlichen
+Skalen öffnen Sie die zweite Quelle und aktivieren unter **Wertachsenbereich**
+die **Eigene Wertachse**. Wählen Sie die **Achsenseite** und stellen Sie den
+**Achsenbereich** auf **Manuell**, um Minimum und Maximum vorzugeben. So lassen
+sich etwa Außentemperatur links von −20 bis 40 °C und Warmwasser rechts von
+20 bis 60 °C ablesen. Bei horizontalen Balken entsprechen die beiden Seiten
+unten und oben. **Variablendarstellung** übernimmt den dort hinterlegten Bereich
+und verwendet die eingetragenen Grenzen als Rückfall.
+
+Bis zu 16 Wertachsen sind möglich. Die Quellenreihenfolge bestimmt die
+Achsenreihenfolge. Auf einer gemeinsamen Achse müssen alle ausdrücklich
+gewählten Seiten und Grenzen zusammenpassen. Gestapelte Quellen benötigen
+die gemeinsame Achse ihrer Einheit.
+
+### PV-Leistungen als gestapelte Balken anzeigen
+
+1. Die archivierten Leistungsvariablen der PV-Flächen hinzufügen, etwa **Ostdach**
+   und **Westdach**, beide in kW.
+2. Für beide Quellen **Stapelgruppe (0 = einzeln)** auf **1** stellen und
+   **Mittelwert** wählen. Als Datenmodus zum Beispiel **1 Stunde** einstellen.
+3. Änderungen übernehmen. Liefert das Ostdach im Stundenmittel 2 kW und das
+   Westdach 3 kW, zeigen die beiden Farbsegmente zusammen 5 kW an.
+   Der Tooltip zeigt die einzelnen Beiträge. Die Legende blendet sie einzeln aus.
+
+Die Gruppen 1–32 bilden jeweils einen eigenen Stapel. Gruppe 0 behält einzelne
+Balken bei. Jede Gruppe benötigt dieselbe wirksame Einheit und eine automatische
+oder feste Verdichtung. Fehlt für ein Intervall der Archivwert einer konfigurierten
+Gruppenquelle, bleibt der gesamte Stapel dort leer, auch wenn die Quelle in der
+Legende ausgeblendet ist. Ein gemessener Nullwert zählt als vorhandener Beitrag.
+Positive und negative Beiträge stapeln sich auf gegenüberliegenden Seiten der
+Nulllinie. Die Legende bestimmt, welche Beiträge im Stapel sichtbar sind.
 
 ## Zeiträume, Auswahl und Ladebudget
 
@@ -68,12 +96,34 @@ komprimiert und benötigen im Browser `DecompressionStream`.
 
 ## Gestaltung und IPSView
 
+Im **Kacheldesigner** unter **Achsen und Anzeige** wählen Sie die **Ausrichtung**.
+**Vertikal** ist der Standard. Bei **Horizontal** stehen die ältesten Intervalle
+oben und die neuesten unten. Die Balken verlaufen waagerecht, der Zeitzoom liegt
+rechts und folgt der Zeitachse. Die Vorschau zeigt die gewählte Ausrichtung.
+Für eine andere Ausrichtung in IPSView deaktivieren Sie dort **Kacheldesign verwenden**
+und wählen die Ausrichtung im IPSView-Designer.
+
+Unter **Achsen und Anzeige → Reglerdicke (0 = automatisch)** stellen Sie bei
+aktivem Zeitzoom die Höhe der Zeitleiste ein. Bei horizontalen Balken bestimmt
+der Wert die Breite der Leiste rechts. Auf dem Handy sind beispielsweise **32 px**
+ein Ausgangspunkt. Möglich sind 1 bis 64 px. **0** verwendet die bisherige
+automatische Größe. Bei sehr geringer Höhe wird die Leiste unter den Balken
+begrenzt. Kachel und unabhängiger IPSView-Designer haben jeweils eine Vorschau.
+
+Unter **Abstand der Wertachsen (0 = automatisch)** legen Sie fest, wie weit
+zwei sichtbare Wertachsen auf derselben Seite auseinanderliegen. **0** verwendet
+die bisherige Automatik. Für engere Skalen auf dem Handy können Sie beispielsweise
+**24 px** ausprobieren. Wählbar sind 1 bis 120 px. Bei horizontalen Balken
+gilt der Abstand für die Achsen unten bzw. oben. Beide Designer zeigen die
+Änderung in der Vorschau. Bei knappem Platz wird der gewählte Abstand verkleinert,
+damit für die Balken Platz bleibt.
+
 Einstellbar sind Theme, Balkenbreite, Deckkraft, Rundung samt Radius, Gitter,
 Wertbeschriftung und getrennte Schriftgrößen/-farben für Titel, Legende, Achsen
 und Werte. Die Achsenschrift gilt auch für die Einheitenüberschrift.
 Wertbeschriftungen bleiben standardmäßig ausgeblendet; ihre Standardposition
-liegt oberhalb der Balken. Alternativ sind andere Seiten oder Innenpositionen
-mit 0–100 px Abstand wählbar.
+liegt bei vertikalen Säulen oben und bei horizontalen Balken rechts. Andere
+Seiten oder Innenpositionen sind mit 0–100 px Abstand wählbar.
 
 **Balkenfüllung: Farbverlauf** aktiviert die Endfarbe. Bei automatischer Endfarbe
 läuft der Verlauf zum Theme-Hintergrund aus. **SVG-Muster** wiederholt eine
@@ -83,8 +133,8 @@ Archive hineinzoomen, um das Motiv erkennen zu können.
 
 IPSView übernimmt standardmäßig das Kacheldesign oder erhält ein unabhängiges
 Design. Vor der eigenen Bearbeitung **Kacheldesign verwenden** ausschalten.
-Der Kopierknopf übernimmt das gespeicherte Kacheldesign einmalig und ersetzt
-vorhandene unabhängige Werte. Quellen und Datenmodus bleiben gemeinsam;
+Der Kopierknopf übernimmt die aktuellen Kachelfelder in den IPSView-Designer.
+Die Vorschau zeigt auch ungespeicherte Änderungen sofort. Mit **Übernehmen** speicherst Du das Design. Quellen und Datenmodus bleiben gemeinsam;
 IPSView-Zeitraum und Zeitachsenbeschriftung liegen separat bei den Zeiteinstellungen.
 Archivaktualisierungen ersetzen nicht das gesamte WebContent-Dokument.
 
@@ -92,6 +142,12 @@ Start- und Aktualisierungsanimation besitzen getrennte Zeiten von 0–3000 ms,
 Bewegungskurven und Verzögerungen von 0–3000 ms. Standard ist cubicInOut ohne
 Verzögerung. Diese gilt für den gesamten Übergang; 0 ms unterdrückt ihn und die
 Systemeinstellung für reduzierte Bewegung schaltet Animationen ab.
+
+### Zeitraum direkt im Diagramm wechseln
+
+Aktiviere im Kacheldesigner **Zeitraumauswahl anzeigen**. Unter dem Diagramm erscheint die aktuelle Auswahl. Ein Tipp öffnet die Zeiträume, etwa **6 Stunden**, **24 Stunden**, **Heute**, **Diese Woche**, **Dieser Monat** oder **Dieses Jahr**. Bei **24 Stunden** reicht das Fenster vom aktuellen Zeitpunkt aus zurück. **Heute** beginnt um Mitternacht in der Symcon-Zeitzone.
+
+Beim Wechsel lädt das Diagramm die Archivwerte für den gewählten Zeitraum mit der eingestellten Verdichtung und dem vorhandenen Punktbudget. Die Zoomleiste dient weiterhin zum Vergrößern eines Ausschnitts. Die Auswahl gilt nur für die geöffnete Ansicht. Beim erneuten Öffnen gilt wieder der konfigurierte Zeitraum. Für IPSView kannst Du **Kacheldesign verwenden** deaktivieren und die Auswahl getrennt einblenden.
 
 ## Vorschau und Verfügbarkeit
 
@@ -153,7 +209,7 @@ oder das Gateway. Alle aufgeführten Argumente beim Symcon-Aufruf übergeben.
 
 | Signatur | Rückgabe und Wirkung |
 | --- | --- |
-| `ECBH_CopyTileDesignToIPSView(int $InstanzID): void` | Kopiert das gespeicherte Kacheldesign, ersetzt die unabhängigen IPSView-Designwerte und wendet sie an; aktiviert unabhängiges Design. |
+| `ECBH_CopyTileDesignToIPSView(int $InstanzID): void` | Überträgt die gespeicherten Kachelwerte in den geöffneten IPSView-Formularentwurf. Erst **Übernehmen** speichert die Kopie. |
 | `ECBH_GetBarHistoryData(int $InstanzID): string` | Liest das reguläre konfigurierte Diagrammmodell als JSON; keine Änderung von Quellen oder Archivwerten. |
 | `ECBH_GetBarHistoryDiagnostic(int $InstanzID): string` | JSON-Momentaufnahme der Konfigurationsprüfung und letzten Fehlermeldung; kein Nachweis einer erfolgreichen Datenabfrage. |
 | `ECBH_GetIPSViewHTML(int $InstanzID): string` | Vollständiges HTML-Dokument für IPSView; der Rückgabewert bestätigt keine Anzeige in einem Client. |

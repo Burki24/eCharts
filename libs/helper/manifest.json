@@ -3,22 +3,22 @@
     "source_repository": "Burki24/Symcon_ModuleHelper",
     "helpers": {
         "ConfigurationFormHelper": {
-            "version": "1.0.1",
-            "sha256": "bd45f15a1c2f6e2800eff51eefeb3094f5745a3469434d6a57b98d54f30d363f",
+            "version": "1.0.3",
+            "sha256": "532c26b557dff545b1a7ea3a845729a932fb65321d62d6276374a33de959deba",
             "path": "libs/helper/ConfigurationFormHelper.php",
-            "source_sha": "85edd95c7344f3740058f19fa7672cbe2e2219c0"
+            "source_sha": "ce2038f4d5f82d32b7c2c8cfc388fc31a0057e96"
         },
         "DataFlowHelper": {
-            "version": "1.0.0",
-            "sha256": "4c25828b283367692d0db1631d2b7d71ba6012883798bc5ffddb8f2d551d6dfb",
+            "version": "1.0.2",
+            "sha256": "95784922e6b11f95ab3fe6e6d934f46234092b79e8fea11236963845cce2d4e6",
             "path": "libs/helper/DataFlowHelper.php",
-            "source_sha": "5f8fdc0c202c532be4897a939f940106bb0f8378"
+            "source_sha": "ce2038f4d5f82d32b7c2c8cfc388fc31a0057e96"
         },
         "IPSViewHTMLPageHelper": {
-            "version": "1.5.5",
-            "sha256": "83b049678e9901514101e74c9e2d9a247adac0b05d1ed5e0c3f368e6be5e9d05",
+            "version": "1.5.6",
+            "sha256": "c5ac1aeaefa3b909ab3bfa07316322e9b3676dfb08a4e3a9adab63e495ba9c6b",
             "path": "libs/helper/IPSViewHTMLPageHelper.php",
-            "source_sha": "b9af1ef9a6864f61e03b3102d060e78f54fadceb",
+            "source_sha": "657dc31a23bf529cc019682c0099d48418f9acc1",
             "assets": [
                 {
                     "path": "libs/helper/translations/IPSViewHTMLPageHelper.json",
@@ -28,17 +28,17 @@
             "dependencies": [
                 {
                     "name": "HelperTranslationHelper",
-                    "version": "1.0.0",
-                    "sha256": "d3deee581eca9f8eb11e9adce060170227a2dc836ee898bd134f93d27604f639",
+                    "version": "1.0.2",
+                    "sha256": "7c0184b51923e3f4f78fb150d403ea092b0117b0b01fb5c04fdc4568b269ebdd",
                     "path": "libs/helper/HelperTranslationHelper.php",
-                    "source_sha": "8e3df7e07ede7a7e298a6d69f132bc4cb697ab91"
+                    "source_sha": "ce2038f4d5f82d32b7c2c8cfc388fc31a0057e96"
                 },
                 {
                     "name": "VisualizationAssetHelper",
-                    "version": "1.1.1",
-                    "sha256": "5df251b5ceb7a9867f2330de6b0476b0c11f1762aeda7c03f08d3ad66f4433d6",
+                    "version": "1.1.4",
+                    "sha256": "28d2dbdb7c86c45986b78ba391c260510d4f1c6427481298a00cc775983cee47",
                     "path": "libs/helper/VisualizationAssetHelper.php",
-                    "source_sha": "b70deba539c9b7ed0c758320d9d4ef52eb9ebfc1",
+                    "source_sha": "cb8906845b8fe3acb25ae0f3e8233c0382a66816",
                     "assets": [
                         {
                             "path": "libs/helper/visualization/http-origin.js",
@@ -46,21 +46,21 @@
                         },
                         {
                             "path": "libs/helper/visualization/interaction.js",
-                            "sha256": "ed03a790da87ccaf747dac426107bf9b9b57a54c5bcab2281b199d662cbaa3ed"
+                            "sha256": "48f9b1cef490201ab8cde9bdc2367c3c897d34e7f4427da114035c1ca62950c2"
                         },
                         {
                             "path": "libs/helper/visualization/interaction.min.js",
-                            "sha256": "0bd1aa60899bd9859a26943a9506b5b52126f45f9cd19532a573e6cb0cb28289"
+                            "sha256": "282d9c70995471a58aa06670b310a578a2358b19ea22478448c857c2892dcdf2"
                         }
                     ]
                 }
             ]
         },
         "ResponsiveVisualizationHelper": {
-            "version": "1.0.2",
-            "sha256": "158d643156820c7c1e6979d4b28099b6b0e2f71eafbd8c6a7feb717200b6c700",
+            "version": "1.0.4",
+            "sha256": "66fd166b804f255e24be1f5bda0b852228f3cc1e6c45c56729b8a55385a20224",
             "path": "libs/helper/ResponsiveVisualizationHelper.php",
-            "source_sha": "d7d96ace1c7285b6cd670d36a74b3fa8a5e7dc95"
+            "source_sha": "ce2038f4d5f82d32b7c2c8cfc388fc31a0057e96"
         },
         "SVGPreviewHelper": {
             "version": "1.0.0",
@@ -69,10 +69,10 @@
             "source_sha": "7a28a4d68fdb81d1c4edc492628ae2f2ae256940"
         },
         "VisualizationAssetHelper": {
-            "version": "1.1.1",
-            "sha256": "5df251b5ceb7a9867f2330de6b0476b0c11f1762aeda7c03f08d3ad66f4433d6",
+            "version": "1.1.4",
+            "sha256": "28d2dbdb7c86c45986b78ba391c260510d4f1c6427481298a00cc775983cee47",
             "path": "libs/helper/VisualizationAssetHelper.php",
-            "source_sha": "b70deba539c9b7ed0c758320d9d4ef52eb9ebfc1",
+            "source_sha": "cb8906845b8fe3acb25ae0f3e8233c0382a66816",
             "assets": [
                 {
                     "path": "libs/helper/visualization/http-origin.js",
@@ -80,19 +80,19 @@
                 },
                 {
                     "path": "libs/helper/visualization/interaction.js",
-                    "sha256": "ed03a790da87ccaf747dac426107bf9b9b57a54c5bcab2281b199d662cbaa3ed"
+                    "sha256": "48f9b1cef490201ab8cde9bdc2367c3c897d34e7f4427da114035c1ca62950c2"
                 },
                 {
                     "path": "libs/helper/visualization/interaction.min.js",
-                    "sha256": "0bd1aa60899bd9859a26943a9506b5b52126f45f9cd19532a573e6cb0cb28289"
+                    "sha256": "282d9c70995471a58aa06670b310a578a2358b19ea22478448c857c2892dcdf2"
                 }
             ]
         },
         "VisualizationThemeHelper": {
-            "version": "1.1.0",
-            "sha256": "29fe61a7eccafeb8b2beb77fe3f7a4896f43b3eaace9ebe428a4fc8250fd9088",
+            "version": "1.1.2",
+            "sha256": "ffd5ba38a26191fd40c5900f8338ae520fa12904474493712eac7975304f4672",
             "path": "libs/helper/VisualizationThemeHelper.php",
-            "source_sha": "8e3df7e07ede7a7e298a6d69f132bc4cb697ab91"
+            "source_sha": "ce2038f4d5f82d32b7c2c8cfc388fc31a0057e96"
         },
         "VariableSearchHelper": {
             "version": "1.0.0",
@@ -108,18 +108,18 @@
             "dependencies": [
                 {
                     "name": "DebugHelper",
-                    "version": "1.0.3",
-                    "sha256": "b58cd75c9c2c01fc0a6e2610b3f41d817e9799400f08179d380eaa81791864e3",
+                    "version": "1.0.5",
+                    "sha256": "a3db963c500a56d7daaa6cab71fe51f236d9859c93cb75cc9100e9f47dc93d04",
                     "path": "libs/helper/DebugHelper.php",
-                    "source_sha": "68aef587ee458e0155ec04ba19c3e20855209b86"
+                    "source_sha": "ce2038f4d5f82d32b7c2c8cfc388fc31a0057e96"
                 }
             ]
         },
         "VariablePresentationNormalizationHelper": {
-            "version": "1.0.2",
-            "sha256": "5ce425a8a54872ea2c0ecd4d065a540300ef6a6d6b5e97627e25b075b8d3c0fd",
+            "version": "1.0.4",
+            "sha256": "3f3e3043ed79b469cd7da0f81e464d097e5d526e96b0c04f8740198f653b09a2",
             "path": "libs/helper/VariablePresentationNormalizationHelper.php",
-            "source_sha": "b57c4a3cb11e096281c4429f0f604ba8c7c8f6e5"
+            "source_sha": "ce2038f4d5f82d32b7c2c8cfc388fc31a0057e96"
         }
     }
 }

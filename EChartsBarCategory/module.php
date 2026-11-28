@@ -11,22 +11,23 @@ use Burki24\SymconModuleHelper\IPSViewHTMLPageHelper;
 use Burki24\SymconModuleHelper\ResponsiveVisualizationHelper;
 use Burki24\SymconModuleHelper\VisualizationAssetHelper;
 use Burki24\SymconModuleHelper\VisualizationThemeHelper;
-use SymconECharts\EChartsAnimationDesign;
-use SymconECharts\EChartsAsset;
-use SymconECharts\EChartsBarPreview;
-use SymconECharts\EChartsBarPreviewForm;
-use SymconECharts\EChartsBarTypography;
-use SymconECharts\EChartsCurrentSources;
-use SymconECharts\EChartsDesignerSections;
-use SymconECharts\EChartsIPSViewBackground;
-use SymconECharts\EChartsIPSViewDesignForm;
-use SymconECharts\EChartsIPSViewTransport;
-use SymconECharts\EChartsLabelDesign;
-use SymconECharts\EChartsNormalization;
-use SymconECharts\EChartsPreviewSourceCount;
-use SymconECharts\EChartsSvgImage;
-use SymconECharts\EChartsTransientRefresh;
-use SymconECharts\EChartsVariablePresentation;
+use eCharts\EChartsAnimationDesign;
+use eCharts\EChartsAsset;
+use eCharts\EChartsBarPreview;
+use eCharts\EChartsBarPreviewForm;
+use eCharts\EChartsBarTypography;
+use eCharts\EChartsCurrentSources;
+use eCharts\EChartsDesignerSections;
+use eCharts\EChartsIPSViewBackground;
+use eCharts\EChartsIPSViewDesignForm;
+use eCharts\EChartsIPSViewTransport;
+use eCharts\EChartsLabelDesign;
+use eCharts\EChartsNormalization;
+use eCharts\EChartsPreviewSourceCount;
+use eCharts\EChartsSliderSize;
+use eCharts\EChartsSvgImage;
+use eCharts\EChartsTransientRefresh;
+use eCharts\EChartsVariablePresentation;
 
 require_once __DIR__ . '/../libs/helper/ConfigurationFormHelper.php';
 require_once __DIR__ . '/../libs/helper/DataFlowHelper.php';
@@ -56,7 +57,7 @@ require_once __DIR__ . '/../libs/EChartsVariablePresentation.php';
 class EChartsBarCategory extends IPSModuleStrict
 {
     use \Burki24\SymconModuleHelper\DebugFlowHelper;
-    use \SymconECharts\EChartsDebugFlow;
+    use \eCharts\EChartsDebugFlow;
 
     use ConfigurationFormHelper;
     use EChartsAnimationDesign;
@@ -110,6 +111,7 @@ class EChartsBarCategory extends IPSModuleStrict
             $this->RegisterPropertyBoolean('NormalizeValues', false);
             $this->RegisterPropertyString('Title', '');
             $this->RegisterDesignProperties();
+            $this->RegisterChartBackgroundProperties();
             $this->RegisterIPSViewHTMLPageProperties();
             $this->RegisterEChartsIPSViewTransport();
             $this->RegisterPropertyBoolean('IPSViewUseTileDesign', true);
@@ -230,7 +232,7 @@ class EChartsBarCategory extends IPSModuleStrict
                 array_map(static fn (string $name): string => 'IPSView' . $name, array_keys($this->DesignPropertyNames()))
             );
 
-            return $debugFlowResult = $this->EncodeConfigurationForm($this->WithBarPreviewForm($form, 'ECBC', $fields));
+            return $debugFlowResult = $this->EncodeChartDesignerForm(__DIR__, $this->WithBarPreviewForm($form, 'ECBC', $fields));
         } catch (\Throwable $debugFlowException) {
             $debugFlowFailed = true;
             $this->DebugFlowException(__FUNCTION__, __LINE__, $debugFlowException);
@@ -272,32 +274,6 @@ class EChartsBarCategory extends IPSModuleStrict
             }
 
             throw new InvalidArgumentException('Unknown action: ' . $Ident);
-        } catch (\Throwable $debugFlowException) {
-            $debugFlowFailed = true;
-            $this->DebugFlowException(__FUNCTION__, __LINE__, $debugFlowException);
-            throw $debugFlowException;
-        } finally {
-            $this->DebugFlowEnd(__FUNCTION__, __LINE__, $debugFlowResult, $debugFlowFailed, true);
-        }
-    }
-
-    public function CopyTileDesignToIPSView(): void
-    {
-        $debugFlowResult = null;
-        $debugFlowFailed = false;
-        $this->DebugFlowStart(__FUNCTION__, __LINE__);
-        try {
-            foreach ($this->DesignPropertyNames() as $name => $type) {
-                $value = match ($type) {
-                    'string'  => $this->ReadPropertyString($name),
-                    'boolean' => $this->ReadPropertyBoolean($name),
-                    'float'   => $this->ReadPropertyFloat($name),
-                    default   => $this->ReadPropertyInteger($name)
-                };
-                IPS_SetProperty($this->InstanceID, 'IPSView' . $name, $value);
-            }
-            IPS_SetProperty($this->InstanceID, 'IPSViewUseTileDesign', false);
-            IPS_ApplyChanges($this->InstanceID);
         } catch (\Throwable $debugFlowException) {
             $debugFlowFailed = true;
             $this->DebugFlowException(__FUNCTION__, __LINE__, $debugFlowException);
@@ -501,6 +477,11 @@ class EChartsBarCategory extends IPSModuleStrict
         }
     }
 
+    protected function UpdateIndependentDesignVisibilityAfterCopy(array $values): void
+    {
+        $this->UpdateBarDesignForm(true, $values['BarFillMode']);
+    }
+
     /** @param array<string,mixed> $values */
     protected function BarPreviewSvg(array $values, bool $ipsView): string
     {
@@ -578,6 +559,10 @@ class EChartsBarCategory extends IPSModuleStrict
             $previewAxisSize * ($horizontal ? 1.5 : 2.4) + 4,
             $this->BarPreviewValue($values, 'ShowValues', 'boolean', $ipsView) ? $previewValueSpan + 4 : 0
         );
+        $totalCategories = $mode === 'simple' ? count($items) : count(array_unique(array_map(
+            static fn (array $item): string => trim((string) ($item['Category'] ?? '')),
+            $items
+        )));
         $items = array_slice($items, 0, max(1, (int) floor(($horizontal ? 210 : 568) / $previewSpan)));
         $svg = EChartsBarPreview::Open(
             $palette,
@@ -789,7 +774,7 @@ class EChartsBarCategory extends IPSModuleStrict
             ++$groupIndex;
         }
 
-        return EChartsPreviewSourceCount::Append(
+        $svg = EChartsPreviewSourceCount::Append(
             $svg . '</g></svg>',
             count($items),
             count($data['items']),
@@ -798,11 +783,19 @@ class EChartsBarCategory extends IPSModuleStrict
             696,
             351
         );
+        return EChartsBarPreview::WithCategorySlider(
+            $svg,
+            $horizontal,
+            $this->BarPreviewValue($values, 'ZoomSliderSize', 'integer', $ipsView),
+            $groupCount,
+            $totalCategories,
+            $palette
+        );
     }
 
     private function RenderBarHTMLPage(bool $ipsView): string
     {
-        return $this->RenderVisualizationHTMLPage($ipsView, [
+        return $this->RenderChartPage($ipsView, [
             'scriptAsset'        => 'app.min.js',
             'language'           => $this->NormalizeHelperTranslationLanguage($this->ResolveHelperTranslationLanguage()),
             'title'              => 'ECharts Category Bar',
@@ -834,7 +827,7 @@ class EChartsBarCategory extends IPSModuleStrict
                 'ipsViewTransport'  => $ipsView ? $this->EChartsIPSViewTransportOptions() : null
             ],
             'replacements'       => [
-                '{{ECHARTS_SCRIPT}}'           => EChartsAsset::BarCategoryJavaScript(),
+                '{{ECHARTS_SCRIPT}}'           => EChartsAsset::RendererScript('bar-category', $ipsView),
                 '{{ECHARTS_THEME_SCRIPT}}'     => EChartsAsset::ThemeJavaScript(),
                 '{{ECHARTS_DESIGN_SCRIPT}}'    => EChartsAsset::DesignJavaScript() . "\n" . EChartsAsset::CategoryNavigationJavaScript(),
                 '{{ECHARTS_PATTERN_SCRIPT}}'   => EChartsAsset::PatternJavaScript(),
@@ -871,6 +864,9 @@ class EChartsBarCategory extends IPSModuleStrict
     /** @return array{Status: int, Message: string}|null */
     private function GetConfigurationError(): ?array
     {
+        if (!$this->ChartBackgroundColorsAreValid()) {
+            return ['Status' => self::STATUS_DESIGN_INVALID, 'Message' => 'Select a valid chart background color.'];
+        }
         try {
             $this->GetValidatedSources();
         } catch (Throwable $exception) {
@@ -1016,7 +1012,7 @@ class EChartsBarCategory extends IPSModuleStrict
             'family'        => 'bar',
             'variant'       => 'category',
             'status'        => 'ready',
-            'chart'         => $chart,
+            'chart'         => $this->WithChartBackground($chart, $ipsView),
             'error'         => null
         ];
     }
@@ -1122,6 +1118,7 @@ class EChartsBarCategory extends IPSModuleStrict
         $this->RegisterPropertyString($prefix . 'ValueLabelPosition', 'auto');
         $this->RegisterPropertyInteger($prefix . 'ValueLabelDistance', 5);
         $this->RegisterPropertyBoolean($prefix . 'ShowGrid', true);
+        $this->RegisterPropertyInteger($prefix . 'ZoomSliderSize', 0);
         $this->RegisterPropertyBoolean($prefix . 'RoundedBars', false);
         $this->RegisterPropertyInteger($prefix . 'BarWidthPercent', 70);
         $this->RegisterPropertyString($prefix . 'BarFillMode', 'solid');
@@ -1148,6 +1145,7 @@ class EChartsBarCategory extends IPSModuleStrict
             'ValueLabelPosition'      => 'string',
             'ValueLabelDistance'      => 'integer',
             'ShowGrid'                => 'boolean',
+            'ZoomSliderSize'          => 'integer',
             'RoundedBars'             => 'boolean',
             'BarWidthPercent'         => 'integer',
             'BarFillMode'             => 'string',
@@ -1188,6 +1186,7 @@ class EChartsBarCategory extends IPSModuleStrict
             && EChartsAsset::IsSupportedTheme($this->ReadPropertyString($prefix . 'EChartsTheme'))
             && EChartsLabelDesign::IsValidPosition($this->ReadPropertyString($prefix . 'ValueLabelPosition'), EChartsLabelDesign::CARTESIAN_POSITIONS)
             && EChartsLabelDesign::IsValidDistance($this->ReadPropertyInteger($prefix . 'ValueLabelDistance'))
+            && EChartsSliderSize::IsValid($this->ReadPropertyInteger($prefix . 'ZoomSliderSize'))
             && $this->ReadPropertyInteger($prefix . 'BarWidthPercent') >= 20
             && $this->ReadPropertyInteger($prefix . 'BarWidthPercent') <= 100
             && in_array($this->ReadPropertyString($prefix . 'BarFillMode'), self::BAR_FILL_MODES, true)
@@ -1221,6 +1220,7 @@ class EChartsBarCategory extends IPSModuleStrict
             'valueLabelPosition' => $this->ReadPropertyString($prefix . 'ValueLabelPosition'),
             'valueLabelDistance' => $this->ReadPropertyInteger($prefix . 'ValueLabelDistance'),
             'showGrid'           => $this->ReadPropertyBoolean($prefix . 'ShowGrid'),
+            'zoomSliderSize'     => $this->ReadPropertyInteger($prefix . 'ZoomSliderSize'),
             'roundedBars'        => $this->ReadPropertyBoolean($prefix . 'RoundedBars'),
             'barWidthPercent'    => $this->ReadPropertyInteger($prefix . 'BarWidthPercent'),
             'barFillMode'        => $this->ReadPropertyString($prefix . 'BarFillMode'),

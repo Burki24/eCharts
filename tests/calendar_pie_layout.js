@@ -38,7 +38,7 @@ function harness(data = model, mode = 'symcon', width = 900, height = 500, heade
     const engine = {setOption: value => {option = value;}, clear: () => {option = null;}, resize() {}, dispose() {}};
     const window = {SYMC_VISUALIZATION: {mode, language: 'de', state: {status: 'ready', chart: data}, translations: {},
         options: {tileHeaderVisible: mode === 'symcon' && (header), tileHeaderInset: mode === 'symcon' && (header) ? 58 : 0, adaptToBackground: mode === 'ipsview', echartsThemes: {auto: palette, dark: palette},
-            calendarPieStatePath: '/hook/SymconECharts/state/5000/' + 'a'.repeat(32)}},
+            calendarPieStatePath: '/hook/eCharts/state/5000/' + 'a'.repeat(32)}},
         echarts: {init: () => engine, format: echarts.format}, getComputedStyle: () => ({color: ''}), addEventListener: (name, fn) => {events[name] = fn;},
         location: {href: 'https://symcon.example/widget'}, ...locationOptions.window};
     const document = {getElementById: element, createElement: () => ({style: {}, remove() {}}), body: {appendChild() {}}, ...locationOptions.document};
@@ -102,6 +102,15 @@ const styled = harness({...model, calendarPie: {...model.calendarPie, style: {..
     cellOpacityPercent: 25, cellBorderColor: '#234567', emptyCellColor: '#345678', titleColor: '#456789', axisColor: '#56789A', valueColor: '#6789AB'}}}, 'ipsview', 1600, 1000);
 assert.equal(styled.option.backgroundColor, 'transparent');
 assert.equal(styled.option.legend.show, false);
+assert.equal(styled.option.legend.textStyle.color, '#56789A', 'Automatic legend text follows the existing axis color.');
+for (const mode of ['symcon', 'ipsview']) {
+    const chart = harness({...model, calendarPie: {...model.calendarPie, style: {...model.calendarPie.style,
+        axisColor: '#AA2200', legendColor: '#000000'}}}, mode);
+    assert.equal(chart.option.legend.textStyle.color, '#000000');
+    assert.equal(chart.option.legend.pageTextStyle.color, '#000000');
+    assert.equal(chart.option.legend.pageIconColor, '#000000');
+    assert.equal(chart.option.calendar.dayLabel.color, '#AA2200');
+}
 assert.equal(styled.option.tooltip.show, false);
 assert.equal(styled.option.calendar.dayLabel.firstDay, 0);
 assert.equal(styled.option.calendar.itemStyle.color, '#345678');
@@ -330,7 +339,7 @@ async function flush() {for (let index = 0; index < 8; index++) {await Promise.r
     const navigation = harness();
     navigation.elements.previous.click();
     await flush();
-    assert.match(navigation.requests[0].url, /^https:\/\/symcon\.example\/hook\/SymconECharts\/state\/5000\//);
+    assert.match(navigation.requests[0].url, /^https:\/\/symcon\.example\/hook\/eCharts\/state\/5000\//);
     assert.match(navigation.requests[0].url, /offset=1&output=tile$/);
     assert.equal(navigation.requests[0].options.method, 'GET');
     navigation.window.handleMessage({status: 'ready', chart: model});

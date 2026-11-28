@@ -5,7 +5,7 @@ lokale Stunden von 0 bis 23 Uhr und je nach Zeitraum konkrete Tage oder
 zusammengefasste Wochentage. Eine
 gemeinsame `EChartsGateway`-Instanz genügt auch für diese Diagrammfamilie.
 
-Installation: Im **Symcon-Modulstore** nach **SymconECharts** suchen.
+Installation: Im **Symcon-Modulstore** nach **eCharts** suchen.
 [Voraussetzungen und Einrichtung](../README.md#installation-und-erstes-diagramm)
 (IP-Symcon 9.0/9.1, PHP 8.5, gemeinsames Gateway).
 Alle technischen Felder, Standardwerte und Quellenparameter stehen in der
@@ -182,6 +182,18 @@ unabhängig eingestellt werden. Bei einem vorübergehenden Ladefehler bleibt
 eine zuletzt gültige Grafik sichtbar und die Archivabfrage wird beim nächsten
 Aktualisierungsintervall wiederholt.
 
+### Zeitraum im Diagramm wechseln
+
+Aktiviere **Zeitraumauswahl anzeigen** im Kacheldesigner oder im eigenständigen IPSView-Designer.
+Ein Menü im Diagramm wechselt zwischen den letzten sieben Tagen, abgeschlossenen
+Monatsblöcken (1, 3, 6 oder 12 Monate) und dem Zeitraum seit Jahresbeginn.
+Mit den Pfeilen blätterst Du innerhalb der gewählten Ansicht. In Vergleichsansichten wirkt
+die Wahl auf die Panels mit gemeinsamem Zeitraum. Panels mit eigenen historischen Grenzen
+behalten diese. Das Menü bietet die Zeiträume an, die ins gemeinsame Archivbudget passen.
+Über **Standard** kehrst Du zum konfigurierten Zeitraum zurück.
+
+Die Auswahl gilt für die geöffnete Ansicht. Beim erneuten Öffnen gilt wieder der konfigurierte Zeitraum.
+
 ## Konfigurationsreferenz und Skriptzugriff
 
 Die [Feldreferenz](../docs/KONFIGURATION.md#echartsheatmap) enthält
@@ -207,7 +219,7 @@ oder das Gateway. Alle aufgeführten Argumente beim Symcon-Aufruf übergeben.
 
 | Signatur | Rückgabe und Wirkung |
 | --- | --- |
-| `ECHM_CopyTileDesignToIPSView(int $InstanzID): void` | Kopiert das gespeicherte Kacheldesign, ersetzt die unabhängigen IPSView-Designwerte und wendet sie an; aktiviert unabhängiges Design. |
+| `ECHM_CopyTileDesignToIPSView(int $InstanzID): void` | Überträgt die gespeicherten Kachelwerte in den geöffneten IPSView-Formularentwurf. Erst **Übernehmen** speichert die Kopie. |
 | `ECHM_GetHeatmapData(int $InstanzID): string` | Liest das reguläre konfigurierte Diagrammmodell als JSON; keine Änderung von Quellen oder Archivwerten. |
 | `ECHM_GetHeatmapDiagnostic(int $InstanzID): string` | JSON-Momentaufnahme der Konfigurationsprüfung und letzten Fehlermeldung; kein Nachweis einer erfolgreichen Datenabfrage. |
 | `ECHM_GetIPSViewHTML(int $InstanzID): string` | Vollständiges HTML-Dokument für IPSView; der Rückgabewert bestätigt keine Anzeige in einem Client. |

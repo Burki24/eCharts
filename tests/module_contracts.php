@@ -44,14 +44,14 @@ requireContract(
     'The library GUID changed.',
     $errors
 );
-requireContract(($library['name'] ?? null) === 'SymconECharts', 'The library name changed.', $errors);
+requireContract(($library['name'] ?? null) === 'eCharts', 'The library name changed.', $errors);
 requireContract(
     ($library['author'] ?? null) === 'Burkhard Kneiseler',
     'The library author changed.',
     $errors
 );
 requireContract(
-    ($library['url'] ?? null) === 'https://github.com/Burki24/SymconECharts',
+    ($library['url'] ?? null) === 'https://github.com/Burki24/eCharts',
     'The library URL changed.',
     $errors
 );
@@ -138,6 +138,14 @@ $expectedModules = [
         'id'                 => '{B99C3ADA-9A90-486F-97E3-96C39554D9A6}',
         'type'               => 3,
         'prefix'             => 'ECGC',
+        'parentRequirements' => ['{4CB9F933-7B16-CC7E-D7C4-572C811AC8CC}'],
+        'childRequirements'  => [],
+        'implemented'        => ['{E4749B72-912B-E3E3-1C57-D19019FFDD84}']
+    ],
+    'EChartsGaugeWind' => [
+        'id'                 => '{D807A371-1639-4CDF-8DF7-97001C5AA420}',
+        'type'               => 3,
+        'prefix'             => 'ECWI',
         'parentRequirements' => ['{4CB9F933-7B16-CC7E-D7C4-572C811AC8CC}'],
         'childRequirements'  => [],
         'implemented'        => ['{E4749B72-912B-E3E3-1C57-D19019FFDD84}']
@@ -330,7 +338,7 @@ foreach ($expectedModules as $moduleName => $expected) {
         $errors
     );
     requireContract(
-        ($module['url'] ?? null) === 'https://github.com/Burki24/SymconECharts',
+        ($module['url'] ?? null) === 'https://github.com/Burki24/eCharts',
         $moduleName . ' changed its repository URL.',
         $errors
     );
@@ -370,7 +378,7 @@ foreach ($expectedModules as $moduleName => $expected) {
 
 $gateway = $moduleContracts['EChartsGateway'];
 foreach ([
-    'EChartsGaugeSingle', 'EChartsGaugeMulti', 'EChartsGaugeTacho', 'EChartsGaugeChronograph',
+    'EChartsGaugeSingle', 'EChartsGaugeMulti', 'EChartsGaugeTacho', 'EChartsGaugeChronograph', 'EChartsGaugeWind',
     'EChartsThemeRiver', 'EChartsStateTimeline', 'EChartsCalendarPie',
     'EChartsTimeSeries', 'EChartsBarCategory', 'EChartsBarHistory', 'EChartsBarWaterfall', 'EChartsBarPolar',
     'EChartsCandlestick', 'EChartsBoxplot', 'EChartsFunnel', 'EChartsPictorialBar', 'EChartsPie', 'EChartsScatter', 'EChartsHeatmap', 'EChartsGraph', 'EChartsGraphZ2M', 'EChartsTreemap', 'EChartsSunburst', 'EChartsParallel', 'EChartsRadar', 'EChartsSankey', 'EChartsCalendar'
@@ -407,8 +415,8 @@ foreach (glob($root . '/ECharts*/module.php') ?: [] as $modulePath) {
 }
 
 if ($errors !== []) {
-    fwrite(STDERR, "SymconECharts module contract validation failed:\n - " . implode("\n - ", $errors) . "\n");
+    fwrite(STDERR, "eCharts module contract validation failed:\n - " . implode("\n - ", $errors) . "\n");
     exit(1);
 }
 
-echo "SymconECharts module contracts verified.\n";
+echo "eCharts module contracts verified.\n";

@@ -5,7 +5,7 @@ Donut oder Nightingale-Rose. Für alle ECharts-Diagramme genügt ein gemeinsames
 `EChartsGateway`; bei weiteren Instanzen wählen Sie das vorhandene Gateway.
 Ein Archiv ist nicht erforderlich.
 
-Installation: Im **Symcon-Modulstore** nach **SymconECharts** suchen.
+Installation: Im **Symcon-Modulstore** nach **eCharts** suchen.
 [Voraussetzungen und Einrichtung](../README.md#installation-und-erstes-diagramm)
 (IP-Symcon 9.0/9.1, PHP 8.5, gemeinsames Gateway).
 Alle technischen Felder, Standardwerte und Quellenparameter stehen in der
@@ -36,9 +36,11 @@ verwenden, solange die optionale Normalisierung ausgeschaltet ist. Einheit und N
 übernommen oder je Quelle gesetzt werden; jede Quelle kann eine eigene Farbe
 erhalten.
 
-Negative Werte sind für Anteile nicht sinnvoll und werden nicht stillschweigend
-in positive Werte umgerechnet: Das Diagramm zeigt dann einen Fehler. Bei einer
-Summe von null zeigt es „Keine positiven Werte“ statt gleich großer
+Ohne Normalisierung werden negative Werte abgewiesen statt stillschweigend
+in positive Anteile umgerechnet. Die optionale Min/Max-Normalisierung erlaubt
+dagegen negative Originalwerte im festgelegten Vergleichsbereich. Bei einer
+Summe der dargestellten Werte beziehungsweise Gewichte von null zeigt das
+Diagramm „Keine positiven Werte“ statt gleich großer
 Scheibensegmente. Nullwerte bleiben als Quellen erhalten, besitzen aber keinen
 sichtbaren Sektor.
 
@@ -109,7 +111,8 @@ Namen bleiben über den Tooltip erreichbar.
 Kachel und optionales IPSView-HTML-Widget verwenden dieselben Quellen.
 IPSView übernimmt zunächst das Kacheldesign; bei deaktiviertem
 „Kacheldesign verwenden“ ist ein eigenständiger Designer aktiv. Der
-Kopierknopf überträgt die gespeicherten Kacheleinstellungen einmalig.
+Kopierknopf übernimmt die aktuellen Kachelfelder für die IPSView-Vorschau.
+Mit **Übernehmen** speicherst Du das Design.
 Der IPSView-Hintergrund ist separat einstellbar. Die HTML-Variable
 `IPSViewPie` wird nur bei aktivierter IPSView-Ausgabe bereitgestellt.
 
@@ -187,7 +190,7 @@ oder das Gateway. Alle aufgeführten Argumente beim Symcon-Aufruf übergeben.
 
 | Signatur | Rückgabe und Wirkung |
 | --- | --- |
-| `ECPI_CopyTileDesignToIPSView(int $InstanzID): void` | Kopiert das gespeicherte Kacheldesign, ersetzt die unabhängigen IPSView-Designwerte und wendet sie an; aktiviert unabhängiges Design. |
+| `ECPI_CopyTileDesignToIPSView(int $InstanzID): void` | Überträgt die gespeicherten Kachelwerte in den geöffneten IPSView-Formularentwurf. Erst **Übernehmen** speichert die Kopie. |
 | `ECPI_GetPieData(int $InstanzID): string` | Liest das reguläre konfigurierte Diagrammmodell als JSON; keine Änderung von Quellen oder Archivwerten. |
 | `ECPI_GetPieDiagnostic(int $InstanzID): string` | JSON-Momentaufnahme der Konfigurationsprüfung und letzten Fehlermeldung; kein Nachweis einer erfolgreichen Datenabfrage. |
 | `ECPI_GetIPSViewHTML(int $InstanzID): string` | Vollständiges HTML-Dokument für IPSView; der Rückgabewert bestätigt keine Anzeige in einem Client. |

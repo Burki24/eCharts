@@ -11,18 +11,18 @@ use Burki24\SymconModuleHelper\IPSViewHTMLPageHelper;
 use Burki24\SymconModuleHelper\ResponsiveVisualizationHelper;
 use Burki24\SymconModuleHelper\VisualizationAssetHelper;
 use Burki24\SymconModuleHelper\VisualizationThemeHelper;
-use SymconECharts\EChartsAnimationDesign;
-use SymconECharts\EChartsAsset;
-use SymconECharts\EChartsBarPreview;
-use SymconECharts\EChartsBarPreviewForm;
-use SymconECharts\EChartsCurrentSources;
-use SymconECharts\EChartsDesignerSections;
-use SymconECharts\EChartsIPSViewBackground;
-use SymconECharts\EChartsIPSViewDesignForm;
-use SymconECharts\EChartsIPSViewTransport;
-use SymconECharts\EChartsTransientRefresh;
-use SymconECharts\RadarModel;
-use SymconECharts\RadarPreview;
+use eCharts\EChartsAnimationDesign;
+use eCharts\EChartsAsset;
+use eCharts\EChartsBarPreview;
+use eCharts\EChartsBarPreviewForm;
+use eCharts\EChartsCurrentSources;
+use eCharts\EChartsDesignerSections;
+use eCharts\EChartsIPSViewBackground;
+use eCharts\EChartsIPSViewDesignForm;
+use eCharts\EChartsIPSViewTransport;
+use eCharts\EChartsTransientRefresh;
+use eCharts\RadarModel;
+use eCharts\RadarPreview;
 
 require_once __DIR__ . '/../libs/helper/ConfigurationFormHelper.php';
 require_once __DIR__ . '/../libs/helper/DataFlowHelper.php';
@@ -50,7 +50,7 @@ require_once __DIR__ . '/RadarPreview.php';
 class EChartsRadar extends IPSModuleStrict
 {
     use \Burki24\SymconModuleHelper\DebugFlowHelper;
-    use \SymconECharts\EChartsDebugFlow;
+    use \eCharts\EChartsDebugFlow;
 
     use ConfigurationFormHelper;
     use DataFlowHelper;
@@ -123,6 +123,7 @@ class EChartsRadar extends IPSModuleStrict
                 }
                 $this->RegisterAnimationProperties($prefix, true, 350, 500);
             }
+            $this->RegisterChartBackgroundProperties();
             $this->RegisterIPSViewHTMLPageProperties();
             $this->RegisterEChartsIPSViewTransport();
             $this->RegisterPropertyBoolean('IPSViewUseTileDesign', true);
@@ -221,7 +222,7 @@ class EChartsRadar extends IPSModuleStrict
                     $fields[] = $prefix . $name;
                 }
             }
-            return $debugFlowResult = $this->EncodeConfigurationForm($this->WithBarPreviewForm($form, 'ECRA', $fields, true));
+            return $debugFlowResult = $this->EncodeChartDesignerForm(__DIR__, $this->WithBarPreviewForm($form, 'ECRA', $fields, true));
         } catch (\Throwable $debugFlowException) {
             $debugFlowFailed = true;
             $this->DebugFlowException(__FUNCTION__, __LINE__, $debugFlowException);
@@ -241,40 +242,6 @@ class EChartsRadar extends IPSModuleStrict
                 return;
             }
             throw new InvalidArgumentException('Unknown action: ' . $Ident);
-        } catch (\Throwable $debugFlowException) {
-            $debugFlowFailed = true;
-            $this->DebugFlowException(__FUNCTION__, __LINE__, $debugFlowException);
-            throw $debugFlowException;
-        } finally {
-            $this->DebugFlowEnd(__FUNCTION__, __LINE__, $debugFlowResult, $debugFlowFailed, true);
-        }
-    }
-
-    public function CopyTileDesignToIPSView(): void
-    {
-        $debugFlowResult = null;
-        $debugFlowFailed = false;
-        $this->DebugFlowStart(__FUNCTION__, __LINE__);
-        try {
-            foreach (self::DESIGN_DEFAULTS as $name => $default) {
-                $value = match (gettype($default)) {
-                    'boolean' => $this->ReadPropertyBoolean($name),
-                    'integer' => $this->ReadPropertyInteger($name),
-                    default   => $this->ReadPropertyString($name)
-                };
-                IPS_SetProperty($this->InstanceID, 'IPSView' . $name, $value);
-            }
-            foreach (['AnimationEnabled', 'AnimationDuration', 'AnimationDurationUpdate', 'AnimationEasing',
-                'AnimationEasingUpdate', 'AnimationDelay', 'AnimationDelayUpdate'] as $name) {
-                $value = match ($name) {
-                    'AnimationEnabled'                         => $this->ReadPropertyBoolean($name),
-                    'AnimationEasing', 'AnimationEasingUpdate' => $this->ReadPropertyString($name),
-                    default                                    => $this->ReadPropertyInteger($name)
-                };
-                IPS_SetProperty($this->InstanceID, 'IPSView' . $name, $value);
-            }
-            IPS_SetProperty($this->InstanceID, 'IPSViewUseTileDesign', false);
-            IPS_ApplyChanges($this->InstanceID);
         } catch (\Throwable $debugFlowException) {
             $debugFlowFailed = true;
             $this->DebugFlowException(__FUNCTION__, __LINE__, $debugFlowException);
@@ -629,18 +596,18 @@ class EChartsRadar extends IPSModuleStrict
                 'ipsViewTransport'  => $ipsView ? $this->EChartsIPSViewTransportOptions() : null
             ],
             'replacements' => [
-                '{{ECHARTS_SCRIPT}}'           => EChartsAsset::RadarJavaScript(),
+                '{{ECHARTS_SCRIPT}}'           => EChartsAsset::RendererScript('radar', $ipsView),
                 '{{ECHARTS_THEME_SCRIPT}}'     => EChartsAsset::ThemeJavaScript(),
                 '{{ECHARTS_DESIGN_SCRIPT}}'    => EChartsAsset::DesignJavaScript() . "\n" . EChartsAsset::SeriesSelectionJavaScript(),
                 '{{IPSVIEW_TRANSPORT_SCRIPT}}' => $ipsView ? $this->EChartsIPSViewTransportJavaScript() : ''
             ]
         ];
-        $html = $this->RenderVisualizationHTMLPage($ipsView, $configuration);
+        $html = $this->RenderChartPage($ipsView, $configuration);
         if (strlen($html) > 1048576) {
             $this->WriteAttributeString('LastError', 'MODEL_TOO_LARGE');
             $this->DebugEChartsSetStatus(self::STATUS_DESIGN_INVALID);
             $configuration['state'] = $this->ErrorState(self::MODEL_TOO_LARGE_MESSAGE);
-            return $this->RenderVisualizationHTMLPage($ipsView, $configuration);
+            return $this->RenderChartPage($ipsView, $configuration);
         }
         return $html;
     }
@@ -670,6 +637,9 @@ class EChartsRadar extends IPSModuleStrict
     /** @return array{Status:int,Message:string}|null */
     private function GetConfigurationError(): ?array
     {
+        if (!$this->ChartBackgroundColorsAreValid()) {
+            return ['Status' => self::STATUS_DESIGN_INVALID, 'Message' => 'Select a valid chart background color.'];
+        }
         try {
             $this->GetValidatedSources();
         } catch (Throwable $exception) {
@@ -902,7 +872,7 @@ class EChartsRadar extends IPSModuleStrict
             }
             return $this->ErrorState('The Radar values could not be loaded.');
         }
-        return ['schemaVersion' => 1, 'family' => 'radar', 'status' => 'ready', 'chart' => $chart, 'error' => null];
+        return ['schemaVersion' => 1, 'family' => 'radar', 'status' => 'ready', 'chart' => $this->WithChartBackground($chart, $ipsView), 'error' => null];
     }
 
     /** @return array<string,mixed> */
@@ -1016,8 +986,7 @@ class EChartsRadar extends IPSModuleStrict
                 ...$this->IPSViewHTMLPageFormItems('Creates a standalone WebContent variable for IPSView.'),
                 EChartsIPSViewBackground::FormRow(),
                 ['type' => 'CheckBox', 'name' => 'IPSViewUseTileDesign', 'caption' => 'Use Tile design'],
-                ['type'       => 'Button', 'caption' => 'Copy Tile design to IPSView and edit independently',
-                    'onClick' => 'ECRA_CopyTileDesignToIPSView($id); return "MESSAGE:Tile design copied to IPSView.";'],
+                ['type'       => 'Button', 'caption' => 'Copy Tile design to IPSView and edit independently'],
                 ['type'     => 'ExpansionPanel', 'caption' => 'Independent IPSView designer', 'expanded' => false,
                     'items' => $rows]
             ]

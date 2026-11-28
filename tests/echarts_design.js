@@ -33,6 +33,29 @@ for (const [seriesId, actionName] of [['treemap', 'treemapRootToNode'], ['sunbur
     assert.deepEqual(calls, [['set', true]], 'Disabling navigation must not restore a previous root.');
 }
 
+const chartBackground = window.SYMC_ECHARTS_DESIGN.chartBackground;
+const black = {chartBackgroundColor: '#000000'};
+const adaptive = {mode: 'ipsview', options: {adaptToBackground: true}};
+assert.equal(chartBackground({mode: 'symcon'}, {}, '#FFE000'), '#FFE000');
+assert.equal(chartBackground({mode: 'symcon'}, black, '#FFE000'), '#000000');
+assert.equal(chartBackground({mode: 'ipsview', options: {}}, black, '#FFE000'), '#000000');
+assert.equal(chartBackground(adaptive, black, '#FFE000'), 'transparent');
+assert.equal(chartBackground(adaptive, black, '#FFE000', true), '',
+    'A clear inline root style lets the IPSView stylesheet paint its chosen color and opacity.');
+
+const pageStyles = new Map();
+window.document = {documentElement: {style: {
+    getPropertyValue: key => pageStyles.get(key),
+    setProperty: (key, value) => pageStyles.set(key, value)
+}}};
+chartBackground({mode: 'symcon'}, black, '#FFE000');
+assert.equal(pageStyles.get('--symc-chart-page-background'), '#000000');
+assert.equal(chartBackground({mode: 'symcon'}, {chartBackgroundColor: 'currentColor'}, '#FFE000'), '#FFE000');
+chartBackground({mode: 'symcon'}, {}, '#FFE000');
+assert.equal(pageStyles.get('--symc-chart-page-background'), 'initial',
+    'Returning to automatic clears the startup page color as well as the canvas.');
+delete window.document;
+
 const parseVisualizationState = window.SYMC_ECHARTS_DESIGN.parseVisualizationState;
 const validMessage = { schemaVersion: 1, family: 'scatter', status: 'ready', chart: {} };
 assert.deepEqual(parseVisualizationState(validMessage), validMessage,
@@ -67,6 +90,15 @@ assert.equal(recoveryWarningElement.hidden, true, 'Fresh data must clear the war
 assert.equal(retainFailure({ status: 'error', error: 'Invalid configuration' }, readyState, {}), false,
     'Configuration failures must not retain a stale chart.');
 const fontSizePercent = window.SYMC_ECHARTS_DESIGN.fontSizePercent;
+const valueAxisSpacing = window.SYMC_ECHARTS_DESIGN.valueAxisSpacing;
+for (const automatic of [undefined, 0, -1, 121, 1.5]) {
+    assert.equal(valueAxisSpacing(automatic, 54, 130, 2), 54);
+}
+assert.equal(valueAxisSpacing(24, 54, 130, 2), 24);
+assert.equal(valueAxisSpacing(120, 54, 130, 1), 120);
+assert.equal(valueAxisSpacing(120, 54, 48, 3), 16, 'Extra axes must share the available margin.');
+assert.equal(valueAxisSpacing(24, 54, 90, 0), 0, 'A single axis needs no extra margin.');
+assert.equal(valueAxisSpacing(24, 54, -4, 2), 0);
 const chartTitleLayout = window.SYMC_ECHARTS_DESIGN.chartTitleLayout;
 assert.deepEqual(JSON.parse(JSON.stringify(chartTitleLayout(
     { mode: 'symcon', options: { tileHeaderVisible: true, tileHeaderInset: 58 } }, 'Chart', 18

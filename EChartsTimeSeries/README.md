@@ -2,10 +2,10 @@
 
 Gerätemodul für historische numerische Symcon-Werte als responsive Apache-
 ECharts-Zeitreihe. Eine Instanz verarbeitet eine bis 32 eindeutige Quellen,
-bis zu acht Einheitengruppen und rendert eine native Symcon-Kachel sowie
+bis zu acht Wertachsen und rendert eine native Symcon-Kachel sowie
 optional ein eigenständiges IPSView-WebContent-Widget.
 
-Installation: Im **Symcon-Modulstore** nach **SymconECharts** suchen.
+Installation: Im **Symcon-Modulstore** nach **eCharts** suchen.
 [Voraussetzungen und Einrichtung](../README.md#installation-und-erstes-diagramm)
 (IP-Symcon 9.0/9.1, PHP 8.5, gemeinsames Gateway).
 Alle technischen Felder, Standardwerte und Quellenparameter stehen in der
@@ -24,8 +24,8 @@ folgt darunter.
 Die schematische Vorschau zeigt bis zu vier anfänglich sichtbare Reihen und deren effektive
 Einheitenachsen auf der konfigurierten Seite. Die Achsen übernehmen automatisch
 die Farbe der ersten zugeordneten Reihe oder die ausdrücklich gewählte
-Achsenfarbe. Archivwerte und numerische Skalen bleiben der echten Kachel
-beziehungsweise dem IPSView-Widget vorbehalten.
+Achsenfarbe. Bei festen Achsenbereichen zeigt die Vorschau Minimum und Maximum.
+Kachel und IPSView zeigen die Archivwerte mit der vollständigen Skala.
 Bei mehr als vier Quellen nennt die Vorschau die angezeigte und gesamte Anzahl;
 Kachel und Widget nutzen weiterhin alle konfigurierten Reihen. Große SVG-Muster
 werden nur in der Vorschau mit sichtbarem Hinweis durch einfache Farbflächen
@@ -38,6 +38,12 @@ Grafik in Kachel und IPSView sichtbar. Bei wiederholtem Fehler erscheint ein
 Hinweis; das Modul versucht nach 60 Sekunden erneut zu laden. Ohne zuvor
 geladene Daten oder bei ungültiger Konfiguration erscheint weiterhin eine
 Fehlermeldung.
+
+Bei einem Konfigurationsfehler zeigen Kachel und IPSView den Grund an.
+Temperatur (°C) und Luftfeuchtigkeit (%) lassen sich gemeinsam anzeigen,
+wenn beide Quellen die **Stapelgruppe 0** verwenden. Eine gemeinsame
+Stapelgruppe benötigt dieselbe Einheit. Nach dem Korrigieren der Quellen
+die Änderungen übernehmen, damit das Diagramm wieder angezeigt wird.
 
 ## Animation
 
@@ -63,12 +69,26 @@ gleichlautenden Reihen behalten in Legende, Tooltip und Vorschau ihre Namen
 ohne ID-Zusatz; Live-Updates bleiben der richtigen ID zugeordnet.
 Objektpfade werden dafür nicht ausgewertet.
 
+## PV-Leistung als gestapelte Flächen anzeigen
+
+1. Unter **Zeitreihenquellen** die archivierten Leistungsvariablen der Dachflächen hinzufügen, zum Beispiel Ostdach und Westdach. Beide müssen dieselbe Einheit verwenden, etwa kW.
+2. Für beide Quellen die **Stapelgruppe** auf **1** setzen und **Durchschnitt** wählen. Die Gruppennummer macht jede zugehörige Reihe zu einer Fläche. Mit Gruppe **0** lassen sich weiterhin einzelne Linien oder Flächen darüberlegen.
+3. Im **Datenmodus** eine gemeinsame Verdichtung auswählen, zum Beispiel **15 Minuten**, und die Änderungen übernehmen.
+
+Liefert das Ostdach in einer Viertelstunde durchschnittlich 2 kW und das Westdach 3 kW, erreicht die Oberkante 5 kW. Der Tooltip zeigt beide Einzelwerte und die sichtbare Summe der Gruppe. Blendest du das Westdach in der Legende aus, zeigt der Stapel für diese Viertelstunde 2 kW. Verwende für die Gesamtleistung den Mittelwert jeder Fläche im selben Intervall. Einzelne Spitzenleistungen können zu unterschiedlichen Zeiten auftreten.
+
+Fehlt ein Archivwert einer Gruppenquelle, bleibt der gesamte Stapel an dieser Stelle unterbrochen. Das gilt auch für ausgeblendete Gruppenmitglieder und bei ausgeschalteter allgemeiner Lückenerkennung. Ein gemessener Wert von 0 kW zählt als vorhandener Beitrag. Andere Gruppen und Einzelreihen laufen unabhängig weiter.
+
+Positive Beiträge wachsen oberhalb, negative unterhalb der Nulllinie. Bei gemischten Vorzeichen zeigt die sichtbare Summe im Tooltip die Bilanz, etwa 3 kW bei Beiträgen von 5 kW und −2 kW.
+
+Die Gruppen **1–32** stehen bei automatischer und fester Verdichtung zur Verfügung. Für Rohwerte und Echtzeit mit unabhängigen Messzeitpunkten bleibt die Stapelgruppe auf **0**.
+
 ## Aktueller Funktionsumfang
 
 - rollende Zeiträume von 1 Stunde, 6 Stunden, 24 Stunden, 7 Tagen und 30 Tagen
   sowie frei definierbare Fenster in Minuten, Stunden, Tagen oder Wochen;
-- kalendergebundene Ansichten für heute, gestern, die laufende Woche und den
-  laufenden Monat; die Grenzen folgen der Symcon-Zeitzone und berücksichtigen
+- kalendergebundene Ansichten für heute, gestern, die laufende Woche den
+  laufenden Monat und das laufende Jahr; die Grenzen folgen der Symcon-Zeitzone und berücksichtigen
   Zeitumstellungen;
 - automatische Zeitachsenbeschriftung oder ausdrückliche Anzeige von Uhrzeit,
   Datum beziehungsweise Datum und Uhrzeit;
@@ -84,12 +104,12 @@ Objektpfade werden dafür nicht ausgewertet.
   größenverstellbare SVG-Flächenmuster;
 - automatische Übernahme von Einheit und Nachkommastellen aus der
   Variablendarstellung mit manuellen Rückfallwerten;
-- eine gemeinsame Y-Achse je effektiver Einheit mit automatischer oder
-  expliziter Anordnung links beziehungsweise rechts;
+- standardmäßig eine gemeinsame Y-Achse je effektiver Einheit, bei Bedarf eine
+  eigene Wertachse pro Reihe mit eigenem Bereich und eigener Achsenseite;
 - automatische Wertachsenbereiche sowie wahlweise die Übernahme von Minimum
   und Maximum aus der Variablendarstellung oder eine manuelle Vorgabe;
-- automatische Wertachsen folgen den dargestellten Daten mit etwas Randabstand,
-  ohne einen Nullpunkt zu erzwingen; auch beim Zeitzoom werden sie neu skaliert.
+- automatische Wertachsen folgen den dargestellten Daten mit etwas Randabstand
+  und schließen bei sichtbaren Stapeln den Nullpunkt ein. Auch beim Zeitzoom werden sie neu skaliert.
   Manuell oder aus der Variablendarstellung festgelegte Grenzen bleiben fest;
 - quellenbezogene Referenzlinien und Wertebereiche mit Beschriftung,
   Reihenfarbe oder eigener Farbe sowie konfigurierbarer Linienart,
@@ -102,6 +122,10 @@ Objektpfade werden dafür nicht ausgewertet.
   und unabhängigen IPSView-Designer. **Automatisch** behält Theme-Farben und
   die farbliche Kopplung der Wertachsen an ihre Datenreihe bei; eine explizite
   Achsenfarbe gilt für alle Zeit- und Wertachsen;
+- waagerechte Gitterlinien an den Werten und optionale **senkrechte Gitterlinien**
+  an der Zeitachse. Beide Richtungen lassen sich unabhängig einblenden und
+  einfärben. Für ein abweichendes Raster in IPSView deaktivieren Sie
+  **Kacheldesign verwenden** im IPSView-Designer;
 - gemeinsames Punktbudget von 200 bis 32.000 Punkten (Standard weiterhin
   2.000), maximal 2.000 je Reihe;
 - scrollbare Legende mit einzelner Reihenauswahl sowie **Alle** und
@@ -109,7 +133,7 @@ Objektpfade werden dafür nicht ausgewertet.
 - Durchschnitt, Zählersumme, Minimum und Maximum entsprechend dem
   versionierten Archivvertrag;
 - native Kachel mit lokalen, integritätsgeprüften ECharts- und Theme-Dateien;
-- Mausrad-Zoom und eine schmale Zoomleiste in der nativen Kachel und im
+- Mausrad-Zoom und eine höhenverstellbare Zoomleiste in der nativen Kachel und im
   IPSView-WebContent-Widget;
 - der gewählte Zoom-Ausschnitt bleibt bei normalen Datenaktualisierungen erhalten;
 - kollabierter Kacheldesigner mit sofortiger SVG-Vorschau für Theme,
@@ -125,8 +149,12 @@ Objektpfade werden dafür nicht ausgewertet.
 
 Das Theme **Automatisch (Symcon-Design)** übernimmt in der nativen Kachel
 Hintergrund, Text- und Oberflächenfarben aus dem aktiven hellen oder dunklen
-Symcon-Design. Fest gewählte ECharts-Themes verwenden weiterhin ihre eigenen
-Farben.
+Symcon-Design. Für eine feste Farbe neben dem Theme **Diagrammhintergrund**
+wählen. Für ein deckend schwarzes Diagramm in beiden Ausgaben Schwarz
+(`#000000`) wählen, **Kacheldesign verwenden** eingeschaltet lassen und
+**An IPSView-Hintergrund anpassen** ausschalten. Senkrechte Linien lassen sich
+mit **Senkrechte Gitterlinien anzeigen** und **Farbe der senkrechten Gitterlinien**
+direkt auf diesem Hintergrund einstellen.
 
 Archivmodi lesen das Symcon-Archiv ausschließlich über die gemeinsame
 `EChartsGateway`-Operation `archive.read`. Der getrennte Echtzeitmodus beginnt
@@ -157,9 +185,18 @@ Kachel einen Hinweis auf das wirksame Punktbudget.
    Achsenseite und Achsenbereich pro Quelle anpassen. Der Bereich bleibt
    standardmäßig automatisch, kann aber aus der Variablendarstellung oder aus
    manuell eingegebenem Minimum und Maximum stammen. Quellen mit derselben
-   effektiven Einheit teilen eine Achse und verwenden deshalb dieselbe
+   effektiven Einheit teilen standardmäßig eine Achse und verwenden deshalb dieselbe
    ausdrücklich gewählte Seite und denselben expliziten Bereich. Automatische
    Quellen übernehmen dabei den expliziten Bereich ihrer Einheitengruppe.
+   Für Feuchtigkeit (0 bis 100 %) und Außentemperatur (−20 bis 40 °C) kannst
+   Du bei beiden Quellen **Links** und einen **manuellen** Bereich wählen.
+   Die unterschiedlichen Einheiten ergeben bereits zwei getrennte Achsen.
+   Für eine weitere Temperatur öffnest Du das Zahnrad dieser Quelle und
+   aktivierst unter **Wertachsenbereich** die **Eigene Wertachse**. Wähle
+   als **Achsenseite** **Rechts** und als **Achsenbereich** **Manuell**.
+   Mit Minimum 20 und Maximum 60 erhältst Du rechts die zweite °C-Skala.
+   Gestapelte Reihen verwenden eine gemeinsame
+   Wertachse. Insgesamt stehen bis zu acht Wertachsen zur Verfügung.
    Der Farbwähler verwendet **Automatisch** für die Farbfolge des
    gewählten Themes; eine ausgewählte Farbe überschreibt sie für diese Reihe.
    Über das Zahnrad einer Quelle kann außerdem das **Einzeldesign** aktiviert
@@ -167,11 +204,15 @@ Kachel einen Hinweis auf das wirksame Punktbudget.
    des Kachel- beziehungsweise IPSView-Designers. SVG-Flächenmuster werden nur
    für den Flächenstil verwendet und vor der Ausgabe sicher validiert.
 5. Optional den Kacheldesigner öffnen und Darstellung sowie Vorschau anpassen.
-6. Optional unter **Referenzlinien und Wertebereiche** bis zu 32 Markierungen
-   ergänzen. Jede Markierung ist einer konfigurierten Quelle zugeordnet und
-   verwendet damit deren Wertachse. Eine Referenzlinie benötigt einen Wert;
-   ein Wertebereich ein Minimum und ein größeres Maximum. Ohne eigene Farbe
-   übernimmt die Markierung die Reihenfarbe.
+6. Für normale Messkurven genügt der Eintrag unter **Zeitreihenquellen**.
+   **Referenzlinien und Wertebereiche (optional)** kann leer bleiben. Hier
+   lassen sich bis zu 32 feste Markierungen ergänzen. Die **zugehörige Zeitreihe**
+   bestimmt die Wertachse und Einheit. Für eine waagerechte Linie bei 25 °C
+   die Temperaturreihe wählen und **Wert / Minimum** auf 25 setzen. Für ein
+   farbiges Band von 40 bis 60 % die Feuchtereihe wählen und 40 sowie 60
+   als Grenzen eintragen. Ohne eigene Farbe übernimmt die Markierung die
+   Reihenfarbe. Beim Entfernen einer Quelle auch ihre Markierungen löschen
+   oder einer passenden verbleibenden Reihe zuordnen.
 7. Optional im Abschnitt **IPSView-Design** die WebContent-Ausgabe aktivieren.
    Standardmäßig übernimmt sie Kacheldesign und Zeiteinstellungen. Wird
    **Zeiteinstellungen der Kachel verwenden** deaktiviert, erhält IPSView
@@ -181,11 +222,9 @@ Kachel einen Hinweis auf das wirksame Punktbudget.
    **Kacheldesign verwenden** ausschalten. Solange es aktiv ist, sind die
    eigenen Designfelder und der Knopf **Kacheldesign nach IPSView kopieren und
    unabhängig bearbeiten** direkt im Abschnitt **IPSView-Design** deaktiviert.
-   Nach dem Ausschalten werden beide sofort aktiv. Der Knopf kopiert das gespeicherte Kacheldesign
-   einmalig und überschreibt bisherige unabhängige IPSView-Designwerte; diese
-   können anschließend separat
-   bearbeitet werden. Änderungen am Kacheldesigner vor dem Kopieren speichern.
-   **An Hintergrundfarbe anpassen** lässt den tatsächlichen
+   Nach dem Ausschalten kopiert der Knopf die aktuellen Kachelfelder in den IPSView-Designer.
+   Die Vorschau zeigt auch ungespeicherte Änderungen sofort. Mit **Übernehmen** speicherst Du das Design.
+   **An IPSView-Hintergrund anpassen** lässt den tatsächlichen
    IPSView-Hintergrund durchscheinen. Die **Hintergrundfarbe**
    verwendet automatisch die Theme-Farbe oder eine frei gewählte Tönung; die
    **Hintergrunddeckkraft** dosiert den darüberliegenden Theme-Hintergrund von
@@ -200,10 +239,34 @@ HTML-Dokument.
 
 Bis zu acht unterschiedliche effektive Einheiten sind möglich. Automatisch
 verteilt die Einheitenachsen auf beide Seiten; mehrere Achsen derselben Seite
-werden versetzt dargestellt.
+werden versetzt dargestellt. Unter **Kacheldesigner → Flächen und Achsen →
+Abstand der Wertachsen** bestimmt `0` den Abstand automatisch. Mit **24 px**
+kannst Du zum Beispiel die zweite linke Skala näher an die erste rücken.
+Du kannst 1 bis 120 px vorgeben. Reicht der Platz bei vielen Achsen oder in
+einer schmalen Kachel nicht aus, verkleinert das Diagramm den Abstand.
+Für einen anderen Abstand in IPSView deaktiviere **Kacheldesign verwenden**
+und stelle den Wert im **unabhängigen IPSView-Designer** ein. Beide
+Vorschauen zeigen den Abstand zwischen den sichtbaren Wertachsen.
+
+Für eine größere Zeitleiste auf dem Handy öffne den **Kacheldesigner**.
+Neben **Zoom aktivieren** stellst Du die **Reglerdicke (0 = automatisch)** ein.
+Probiere beispielsweise **32 px** aus. Möglich sind 1 bis 64 px. Bei **0** wählt
+das Diagramm die bisherige Höhe automatisch. Bei sehr wenig Platz begrenzt es
+die Höhe, damit die Kurven sichtbar bleiben. Für einen eigenen Wert in IPSView
+deaktiviere **Kacheldesign verwenden** und stelle die Reglerdicke im
+**IPSView-Designer** ein. Die Vorschau zeigt die gewählte Höhe.
+
 `raw` bleibt immer eine echte Rohwertabfrage; `realtime` ist der ausdrücklich
 archivfreie Live-Modus und nur `auto` wählt selbstständig eine
 Verdichtungsstufe.
+
+### Zeitraum direkt im Diagramm wechseln
+
+Aktiviere im Kacheldesigner **Zeitraumauswahl anzeigen**. Unter dem Diagramm erscheint die aktuelle Auswahl. Ein Tipp öffnet die Zeiträume, etwa **6 Stunden**, **24 Stunden**, **Heute**, **Diese Woche**, **Dieser Monat** oder **Dieses Jahr**. Bei **24 Stunden** reicht das Fenster vom aktuellen Zeitpunkt aus zurück. **Heute** beginnt um Mitternacht in der Symcon-Zeitzone.
+
+Beim Wechsel lädt das Diagramm die Archivwerte für den gewählten Zeitraum mit der eingestellten Verdichtung und dem vorhandenen Punktbudget. Die Zoomleiste dient weiterhin zum Vergrößern eines Ausschnitts. Die Auswahl gilt nur für die geöffnete Ansicht. Beim erneuten Öffnen gilt wieder der konfigurierte Zeitraum. Für IPSView kannst Du **Kacheldesign verwenden** deaktivieren und die Auswahl getrennt einblenden.
+
+Im Datenmodus **Echtzeit** sammelt das Diagramm nur neue Werte ab dem Öffnen. Die Archiv-Zeitraumauswahl erscheint deshalb ausschließlich in den Archivmodi.
 
 ## Viele Reihen und Reihenauswahl
 
@@ -290,7 +353,7 @@ oder das Gateway. Alle aufgeführten Argumente beim Symcon-Aufruf übergeben.
 
 | Signatur | Rückgabe und Wirkung |
 | --- | --- |
-| `ECTS_CopyTileDesignToIPSView(int $InstanzID): void` | Kopiert das gespeicherte Kacheldesign, ersetzt die unabhängigen IPSView-Designwerte und wendet sie an; aktiviert unabhängiges Design. |
+| `ECTS_CopyTileDesignToIPSView(int $InstanzID): void` | Überträgt die gespeicherten Kachelwerte in den geöffneten IPSView-Formularentwurf. Erst **Übernehmen** speichert die Kopie. |
 | `ECTS_GetTimeSeriesData(int $InstanzID): string` | Liest das reguläre konfigurierte Diagrammmodell als JSON; keine Änderung von Quellen oder Archivwerten. |
 | `ECTS_GetTimeSeriesDiagnostic(int $InstanzID): string` | JSON-Momentaufnahme der Konfigurationsprüfung und letzten Fehlermeldung; kein Nachweis einer erfolgreichen Datenabfrage. |
 | `ECTS_GetIPSViewHTML(int $InstanzID): string` | Vollständiges HTML-Dokument für IPSView; der Rückgabewert bestätigt keine Anzeige in einem Client. |

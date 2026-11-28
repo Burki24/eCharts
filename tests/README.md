@@ -1,5 +1,63 @@
 # Tests
 
+## Kacheldesign nach IPSView kopieren
+
+`php tests/gateway_gauges.php --design-copy-form` führt den Kopierbutton der
+30 Diagrammformulare im Kernel-Testdoppel aus. Der Test prüft ungespeicherte
+Farben, ein ausgewähltes SVG und Listenzeilen. Beim Treemap-Formular prüft er
+die Vorschau direkt nach dem Kopieren, nach Verwerfen und nach Übernehmen.
+
+## Windrose
+
+`php tests/gateway_gauges.php --gauge-wind` prüft die Geräteinstanz mit
+Gateway, Quellenwechsel, Winkelübergang bei Nord, optionaler Geschwindigkeit,
+Kachel, IPSView und beiden Formularvorschauen. `node tests/gauge_wind_layout.js`
+prüft in der ausgelieferten ECharts-Laufzeit Zeiger, Himmelsrichtungen und die
+tatsächliche Drehung des Blatts über mehrere Animationszeitpunkte. Windstille,
+fehlende Geschwindigkeit und die Einstellung für reduzierte Bewegung haben
+eigene Prüffälle.
+
+## Tree-JSON-Datenquelle
+
+`php tests/tree_json.php` prüft den strikten gemeinsamen Parser und die gesamte
+Hierarchie vor der Projektion, Identitäten, Unicode-/Byte-/Knoten-/Tiefengrenzen
+und lokale Bindungen. `php tests/gateway_gauges.php --tree-json` führt das echte
+Modul einschließlich der tatsächlichen nativen Formularscripts aus. Das
+Kernel-Doppel trennt aktive und geplante Properties. Es prüft neben Datei/Text
+und öffentlichen APIs auch pure Vorschauen, reine Größenprüfungen ohne neuen
+Transportkanal, idempotente Übernahme, konkurrierende Entwürfe, Speicherfehler,
+String-VM_UPDATE, Rate-Limit, sichtbaren alten Stand, Quellenwechsel und Neustart.
+Die gemeinsame Kernel-Fixture besitzt wie das echte SDK keine `VariableExists`-
+Modulmethode. Der Regressionstest erzwingt dies, prüft alle Eingabewege ohne
+IPSView-Variable und validiert anschließend mit aktiver beziehungsweise
+deaktiviert erhaltener Ausgabe. Ihre Nutzung als eigene Wertquelle bleibt gesperrt.
+`IPS_GetConfiguration` und `IPS_GetProperty` lesen im Doppel ausschließlich aktive
+Properties; `IPS_SetProperty` schreibt getrennt nach `Planned`, erst
+`IPS_ApplyChanges` aktiviert sie. Die zuvor fehlerhafte Setter-Prüfung scheitert
+damit wie im Kernel mit `PERSISTENCE_FAILED`. Regressionen sichern die erfolgreiche
+Erstübernahme, idempotente Wiederholung, späte Entwürfe während der Quellenlesung
+und Fehler bzw. konkurrierende Änderungen beim/nach dem Anwenden ab. Es werden
+weder unbestätigte Erfolge gemeldet noch fremde Zustände automatisch repariert.
+
+`php tests/gateway_gauges.php --tree-depth`, `--tree-health-depth` sowie
+`php tests/tree_hierarchy.php`, `php tests/tree_preview.php` und
+`node tests/tree_layout.js` sichern die wiederverwendete Projektion und die
+bisherigen Objekt-/Health-Verträge. Diese Prüfungen gehören zur Qualitätssuite.
+
+Optional startet `node tests/tree_json_browser.mjs <Chromium-Pfad>` ausschließlich
+eine anonyme lokale Tree-Fixture und ein isoliertes Headless-Browserprofil.
+Beide Ausgabe-Layouts werden mit dem ausgelieferten ECharts-Build geprüft;
+trusted Mausradereignisse in beiden Richtungen ändern den Zoom ohne
+äußeres Scrollen. Stale-Hinweis, neue Quelle und JavaScript-Ausnahmen werden
+geprüft; ein Screenshot bleibt im temporären Verzeichnis. Keine Installation
+wird angesprochen. Dieser Nachweis ersetzt keine native Kachel-/IPSView-App-
+Abnahme. Die nachfolgende MCP-Abnahme unter 1.403/1.404 sowie die
+Eigentümerbestätigung in Kachel und IPSView sind abgeschlossen. Erstübernahme,
+Wiederholung und die Sperre bei fremden Entwürfen wurden unter 1.404 direkt im
+Kernel geprüft; temporäre Testobjekte sind entfernt und bestehende Bestände
+unverändert. Konkrete Nachweise und verbleibende Testlücken stehen im
+[Tree-JSON-Vertrag](../docs/TREE_JSON_CONTRACT.md#abnahmestand-und-verbleibende-testlücken).
+
 ## Bestätigte JSLive-Übernahme (ADR 0111)
 
 `php tests/jslive_templates.php` prüft 80 Pläne mit den exakten aktuellen
@@ -269,6 +327,11 @@ Dateien und die bestehende Schleifenvermeidung. Die Prüfung läuft bereits übe
 `tests/run.php`; ein echter GitHub-Schreiblauf erfolgt erst nach Eigentümer-Push.
 
 ## Gateway-Hook und gemeinsame Beta-Abnahme
+
+`php tests/gateway_gauges.php --gateway-journal-start` prüft zwei Starts mit
+demselben JSLive-Journal aus 107 synthetischen Einträgen über 1 MiB. Der erste
+Start migriert die gespeicherten Kennungen nach der Attributwiederherstellung.
+Der zweite übernimmt das Ergebnis bytegleich ohne Schreibzugriff.
 
 `php tests/gateway_gauges.php --gateway-transport` prüft den tatsächlichen
 Gateway-Handler mit exklusiver Hookregistrierung im Kernel-Doppel: mehrere

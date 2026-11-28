@@ -80,6 +80,17 @@
                     }
                 },
                 {
+                    "caption": "Stack group (0 = separate)",
+                    "name": "StackGroup",
+                    "width": "155px",
+                    "add": 0,
+                    "edit": {
+                        "type": "NumberSpinner",
+                        "minimum": 0,
+                        "maximum": 32
+                    }
+                },
+                {
                     "caption": "Reducer",
                     "name": "Reducer",
                     "width": "120px",
@@ -123,11 +134,11 @@
                                 "value": "auto"
                             },
                             {
-                                "caption": "Left",
+                                "caption": "Left / bottom",
                                 "value": "left"
                             },
                             {
-                                "caption": "Right",
+                                "caption": "Right / top",
                                 "value": "right"
                             }
                         ]
@@ -183,6 +194,13 @@
                     "maximum": 6
                 },
                 {
+                    "type": "NumberSpinner",
+                    "name": "StackGroup",
+                    "caption": "Stack group (0 = separate)",
+                    "minimum": 0,
+                    "maximum": 32
+                },
+                {
                     "type": "Select",
                     "name": "Reducer",
                     "caption": "Reducer",
@@ -215,12 +233,35 @@
                     "caption": "Color",
                     "allowTransparent": true,
                     "transparentCaption": "Automatic (theme)"
+                },
+                {
+                    "type": "Select",
+                    "name": "AxisPosition",
+                    "caption": "Axis side",
+                    "options": [
+                        {
+                            "caption": "Automatic",
+                            "value": "auto"
+                        },
+                        {
+                            "caption": "Left / bottom",
+                            "value": "left"
+                        },
+                        {
+                            "caption": "Right / top",
+                            "value": "right"
+                        }
+                    ]
                 }
             ]
         },
         {
             "type": "Label",
-            "caption": "The total point budget is shared by all configured sources, including initially hidden rows. Up to 16 effective unit groups are supported."
+            "caption": "To stack bars, assign the same group number and unit to the sources and choose automatic or fixed aggregation. Intervals missing a contribution leave a gap in that stack."
+        },
+        {
+            "type": "Label",
+            "caption": "The total point budget is shared by all configured sources, including initially hidden rows. Up to 16 value axes are supported."
         },
         {
             "type": "RowLayout",
@@ -267,6 +308,10 @@
                         {
                             "caption": "This month",
                             "value": "current-month"
+                        },
+                        {
+                            "caption": "This year",
+                            "value": "current-year"
                         },
                         {
                             "caption": "Custom",
@@ -447,6 +492,21 @@
                             ]
                         },
                         {
+                            "type": "Select",
+                            "name": "Orientation",
+                            "caption": "Orientation",
+                            "options": [
+                                {
+                                    "caption": "Vertical",
+                                    "value": "vertical"
+                                },
+                                {
+                                    "caption": "Horizontal",
+                                    "value": "horizontal"
+                                }
+                            ]
+                        },
+                        {
                             "type": "CheckBox",
                             "name": "ShowValues",
                             "caption": "Show values"
@@ -455,6 +515,11 @@
                             "type": "CheckBox",
                             "name": "ShowGrid",
                             "caption": "Show grid"
+                        },
+                        {
+                            "type": "CheckBox",
+                            "name": "EnablePeriodSelection",
+                            "caption": "Show period selection"
                         },
                         {
                             "type": "CheckBox",
@@ -475,6 +540,27 @@
                             "maximum": 100,
                             "suffix": "%",
                             "width": "140px"
+                        }
+                    ]
+                },
+                {
+                    "type": "RowLayout",
+                    "items": [
+                        {
+                            "type": "NumberSpinner",
+                            "name": "ValueAxisSpacing",
+                            "caption": "Value axis spacing (0 = automatic)",
+                            "minimum": 0,
+                            "maximum": 120,
+                            "suffix": "px"
+                        },
+                        {
+                            "type": "NumberSpinner",
+                            "name": "ZoomSliderSize",
+                            "caption": "Slider thickness (0 = automatic)",
+                            "minimum": 0,
+                            "maximum": 64,
+                            "suffix": "px"
                         }
                     ]
                 },

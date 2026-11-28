@@ -1,11 +1,11 @@
 # EChartsGaugeMulti
 
-Gerätemodul der SymconECharts-Library für einen zusammengesetzten Gauge-Chart
+Gerätemodul der eCharts-Library für einen zusammengesetzten Gauge-Chart
 mit mehreren Werten oder Zeigern. Eine Gauge-Multi-Instanz bietet die native
 Symcon-Kacheldarstellung und ein optionales HTML-Widget in IPSView.
 Datenquellen und Diagrammkonfiguration werden dabei nur einmal gepflegt.
 
-Installation: Im **Symcon-Modulstore** nach **SymconECharts** suchen.
+Installation: Im **Symcon-Modulstore** nach **eCharts** suchen.
 [Voraussetzungen und Einrichtung](../README.md#installation-und-erstes-diagramm)
 (IP-Symcon 9.0/9.1, PHP 8.5, gemeinsames Gateway).
 Alle technischen Felder, Standardwerte und Quellenparameter stehen in der
@@ -132,10 +132,10 @@ bleiben die manuellen Werte der betreffenden Zeile als Rückfall erhalten.
 ## 3. Software-Installation
 
 Das Gauge-Modul wird gemeinsam mit EChartsGateway über die Library
-**SymconECharts** eingebunden. Es gibt kein separat zu installierendes
+**eCharts** eingebunden. Es gibt kein separat zu installierendes
 Gerätepaket.
 
-Im **Symcon-Modulstore** nach **SymconECharts** suchen und die Library
+Im **Symcon-Modulstore** nach **eCharts** suchen und die Library
 installieren. Sie enthält das Gateway und alle Diagrammmodule.
 
 ## 4. Einrichten der Instanzen in Symcon
@@ -258,12 +258,11 @@ Gestaltung zuerst **Kacheldesign verwenden** ausschalten. Solange es aktiv ist,
 stehen die eigenen Designfelder und der Knopf **Kacheldesign nach IPSView
 kopieren und unabhängig bearbeiten** direkt im Abschnitt **IPSView-Design**,
 sind aber deaktiviert.
-Nach dem Ausschalten werden die Eingaben und der Knopf sofort aktiv; dieser
-kopiert das gespeicherte Kacheldesign einmalig. Bisherige unabhängige
-IPSView-Designwerte werden dabei überschrieben. Anschließend kann der
-IPSView-Designer separat bearbeitet werden. Beide Ausgaben behalten dieselben
+Nach dem Ausschalten kopiert der Knopf die aktuellen Kachelfelder in den
+IPSView-Designer. Die Vorschau zeigt auch ungespeicherte Änderungen sofort.
+Anschließend kann der IPSView-Designer separat bearbeitet werden. Beide Ausgaben behalten dieselben
 Quellen, Wertebereiche, Einheiten und Live-Daten.
-Änderungen am Kacheldesigner vor dem Kopieren speichern.
+Mit **Übernehmen** speicherst Du das bearbeitete Design.
 
 ### Gemeinsame Darstellung
 
@@ -297,7 +296,7 @@ oder das Gateway. Alle aufgeführten Argumente beim Symcon-Aufruf übergeben.
 
 | Signatur | Rückgabe und Wirkung |
 | --- | --- |
-| `ECGM_CopyTileDesignToIPSView(int $InstanzID): void` | Kopiert das gespeicherte Kacheldesign, ersetzt die unabhängigen IPSView-Designwerte und wendet sie an; aktiviert unabhängiges Design. |
+| `ECGM_CopyTileDesignToIPSView(int $InstanzID): void` | Überträgt die gespeicherten Kachelwerte in den geöffneten IPSView-Formularentwurf. Erst **Übernehmen** speichert die Kopie. |
 | `ECGM_GetGaugeData(int $InstanzID): string` | Liest das reguläre konfigurierte Diagrammmodell als JSON; keine Änderung von Quellen oder Archivwerten. |
 | `ECGM_GetIPSViewHTML(int $InstanzID): string` | Vollständiges HTML-Dokument für IPSView; der Rückgabewert bestätigt keine Anzeige in einem Client. |
 

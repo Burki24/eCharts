@@ -50,6 +50,18 @@ declare(strict_types=1);
             && count($data['groups'][1]['points']) === 2,
             'Missing intervals in one group must not drop valid points of another group.'
         );
+        $chart->SetTestProperty('EnablePeriodSelection', true);
+        $tile = $chart->GetVisualizationTile();
+        assertGatewayGauge(preg_match('#/hook/eCharts/state/5000/([a-f0-9]{32})#', $tile, $channel) === 1
+            && str_contains($tile, 'id="echarts-period-picker"'), 'An enabled Scatter tile needs a scoped picker.');
+        $request = ['DataID' => '{E4749B72-912B-E3E3-1C57-D19019FFDD84}'] + eCharts\EChartsDataProtocol::CreateRequest('ipsview.state', [
+            'InstanceID' => 5000, 'Channel' => $channel[1], 'Period' => '6h', 'Output' => 'tile'
+        ]);
+        $alternate = eCharts\EChartsDataProtocol::DecodeResponse($chart->ReceiveData(json_encode($request, JSON_THROW_ON_ERROR)), 'ipsview.state')['Payload']['State'];
+        assertGatewayGauge($alternate['viewPeriod'] === '6h' && $alternate['chart']['range']['key'] === '6h'
+            && $alternate['chart']['range']['startTimestamp'] === $data['range']['startTimestamp'] - 5 * 3600
+            && $alternate['chart']['groups'] === $data['groups'], 'The Scatter picker must load a new range and retain interval join rules for all groups.');
+        $chart->SetTestProperty('EnablePeriodSelection', false);
         $read = static fn (): array => json_decode($chart->GetScatterData(), true, 512, JSON_THROW_ON_ERROR);
         $set = static function (array $rows) use ($chart): void
         {
@@ -132,6 +144,8 @@ declare(strict_types=1);
         $chart->SetTestProperty('IPSViewUseTileDesign', false);
         $chart->SetTestProperty('IPSViewBubbleRangeMode', 'manual');
         $chart->SetTestProperty('IPSViewBubbleMaximum', 255.0);
+        $chart->SetTestProperty('ZoomSliderSize', 32);
+        $chart->SetTestProperty('IPSViewZoomSliderSize', 44);
         $chart->SetTestProperty('BubbleRangeMode', 'manual');
         $chart->SetTestProperty('BubbleMaximum', 100.0);
         $chart->ApplyChanges();
@@ -141,6 +155,7 @@ declare(strict_types=1);
             assertGatewayGauge(
                 $boot['state']['status'] === 'ready' && count($boot['state']['chart']['groups']) === 16
                 && (float) $boot['state']['chart']['scatter']['style']['bubbleMaximum'] === ($index === 0 ? 100.0 : 255.0)
+                && $boot['state']['chart']['scatter']['style']['zoomSliderSize'] === ($index === 0 ? 32 : 44)
                 && strlen($html) < SYMCON_OUTPUT_BUFFER_LIMIT,
                 'Both outputs and published WebContent retain groups and independent original designs under 1 MiB.'
             );

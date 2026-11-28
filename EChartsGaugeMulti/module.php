@@ -12,19 +12,19 @@ use Burki24\SymconModuleHelper\ResponsiveVisualizationHelper;
 use Burki24\SymconModuleHelper\SVGPreviewHelper;
 use Burki24\SymconModuleHelper\VisualizationAssetHelper;
 use Burki24\SymconModuleHelper\VisualizationThemeHelper;
-use SymconECharts\EChartsAnimationDesign;
-use SymconECharts\EChartsAsset;
-use SymconECharts\EChartsDataProtocol;
-use SymconECharts\EChartsDesignerSections;
-use SymconECharts\EChartsGaugeDesign;
-use SymconECharts\EChartsGaugeMultiPreview;
-use SymconECharts\EChartsIPSViewBackground;
-use SymconECharts\EChartsIPSViewDesignForm;
-use SymconECharts\EChartsIPSViewTransport;
-use SymconECharts\EChartsLabelDesign;
-use SymconECharts\EChartsSourceIdentity;
-use SymconECharts\EChartsTransientRefresh;
-use SymconECharts\EChartsVariablePresentation;
+use eCharts\EChartsAnimationDesign;
+use eCharts\EChartsAsset;
+use eCharts\EChartsDataProtocol;
+use eCharts\EChartsDesignerSections;
+use eCharts\EChartsGaugeDesign;
+use eCharts\EChartsGaugeMultiPreview;
+use eCharts\EChartsIPSViewBackground;
+use eCharts\EChartsIPSViewDesignForm;
+use eCharts\EChartsIPSViewTransport;
+use eCharts\EChartsLabelDesign;
+use eCharts\EChartsSourceIdentity;
+use eCharts\EChartsTransientRefresh;
+use eCharts\EChartsVariablePresentation;
 
 require_once __DIR__ . '/../libs/helper/ConfigurationFormHelper.php';
 require_once __DIR__ . '/../libs/helper/DataFlowHelper.php';
@@ -50,7 +50,7 @@ require_once __DIR__ . '/GaugePreview.php';
 class EChartsGaugeMulti extends IPSModuleStrict
 {
     use \Burki24\SymconModuleHelper\DebugFlowHelper;
-    use \SymconECharts\EChartsDebugFlow;
+    use \eCharts\EChartsDebugFlow;
 
     use ConfigurationFormHelper;
     use EChartsAnimationDesign;
@@ -184,6 +184,7 @@ class EChartsGaugeMulti extends IPSModuleStrict
             foreach (self::DESIGN_ASSET_INTEGER_DEFAULTS as $name => $default) {
                 $this->RegisterPropertyInteger($name, $default);
             }
+            $this->RegisterChartBackgroundProperties();
             $this->RegisterIPSViewHTMLPageProperties();
             $this->RegisterEChartsIPSViewTransport();
             $this->RegisterPropertyBoolean('IPSViewUseTileDesign', true);
@@ -302,7 +303,7 @@ class EChartsGaugeMulti extends IPSModuleStrict
                     $this->ReadPropertyString('Title'),
                     $this->ReadPropertyString('EChartsTheme'),
                     $this->ReadPropertyString('GaugePreset'),
-                    $this->ReadGaugeStyle(),
+                    $this->ReadGaugeStyle() + ['chartBackgroundColor' => $this->EffectiveChartBackgroundColor(false)],
                     $sourceCountCaption,
                     $this->PreviewOptions()
                 )
@@ -323,20 +324,22 @@ class EChartsGaugeMulti extends IPSModuleStrict
                             : $this->ReadGaugeStyle('IPSView'),
                         $this->ReadPropertyBoolean('IPSViewAdaptToBackground'),
                         $this->ReadPropertyInteger('IPSViewBackgroundColor'),
-                        $this->ReadPropertyInteger('IPSViewBackgroundOpacityPercent')
+                        $this->ReadPropertyInteger('IPSViewBackgroundOpacityPercent'),
+                        $this->EffectiveChartBackgroundColor(true)
                     ),
                     $sourceCountCaption,
                     $this->PreviewOptions()
                 )
             );
 
-            $form = $this->WithIPSViewDesignFormState($form, 'ECGM');
+            $previewAction = $this->GaugePreviewFormAction(true);
+            $form = $this->WithIPSViewDesignFormState($form, 'ECGM', $previewAction, $previewAction);
             $form = EChartsDesignerSections::Group($form, [
                 ['caption' => 'Chart title', 'start' => 'ChartTitleFontSizePercent'],
                 ['caption' => 'Fine tuning', 'start' => 'Fine tuning values range from 50% to 150%. 100% restores the preset default.']
             ]);
 
-            return $debugFlowResult = $this->EncodeConfigurationForm($form);
+            return $debugFlowResult = $this->EncodeChartDesignerForm(__DIR__, $form);
         } catch (\Throwable $debugFlowException) {
             $debugFlowFailed = true;
             $this->DebugFlowException(__FUNCTION__, __LINE__, $debugFlowException);
@@ -357,48 +360,6 @@ class EChartsGaugeMulti extends IPSModuleStrict
             }
 
             throw new InvalidArgumentException('Unknown action: ' . $Ident);
-        } catch (\Throwable $debugFlowException) {
-            $debugFlowFailed = true;
-            $this->DebugFlowException(__FUNCTION__, __LINE__, $debugFlowException);
-            throw $debugFlowException;
-        } finally {
-            $this->DebugFlowEnd(__FUNCTION__, __LINE__, $debugFlowResult, $debugFlowFailed, true);
-        }
-    }
-
-    public function CopyTileDesignToIPSView(): void
-    {
-        $debugFlowResult = null;
-        $debugFlowFailed = false;
-        $this->DebugFlowStart(__FUNCTION__, __LINE__);
-        try {
-            IPS_SetProperty($this->InstanceID, 'IPSViewGaugePreset', $this->ReadPropertyString('GaugePreset'));
-            IPS_SetProperty($this->InstanceID, 'IPSViewEChartsTheme', $this->ReadPropertyString('EChartsTheme'));
-            IPS_SetProperty($this->InstanceID, 'IPSViewChartTitleFontSizePercent', $this->ReadPropertyInteger('ChartTitleFontSizePercent'));
-            IPS_SetProperty($this->InstanceID, 'IPSViewChartTitleColor', $this->ReadPropertyInteger('ChartTitleColor'));
-            foreach (self::DESIGN_SCALE_PROPERTIES as $name) {
-                IPS_SetProperty($this->InstanceID, 'IPSView' . $name, $this->ReadPropertyInteger($name));
-            }
-            foreach (self::DESIGN_STRING_DEFAULTS as $name => $_default) {
-                IPS_SetProperty($this->InstanceID, 'IPSView' . $name, $this->ReadPropertyString($name));
-            }
-            foreach (self::DESIGN_INTEGER_DEFAULTS as $name => $_default) {
-                IPS_SetProperty($this->InstanceID, 'IPSView' . $name, $this->ReadPropertyInteger($name));
-            }
-            foreach (self::DESIGN_ASSET_STRING_DEFAULTS as $name => $_default) {
-                IPS_SetProperty($this->InstanceID, 'IPSView' . $name, $this->ReadPropertyString($name));
-            }
-            foreach (self::DESIGN_ASSET_FLOAT_DEFAULTS as $name => $_default) {
-                IPS_SetProperty($this->InstanceID, 'IPSView' . $name, $this->ReadPropertyFloat($name));
-            }
-            foreach (self::DESIGN_ASSET_BOOLEAN_DEFAULTS as $name => $_default) {
-                IPS_SetProperty($this->InstanceID, 'IPSView' . $name, $this->ReadPropertyBoolean($name));
-            }
-            foreach (self::DESIGN_ASSET_INTEGER_DEFAULTS as $name => $_default) {
-                IPS_SetProperty($this->InstanceID, 'IPSView' . $name, $this->ReadPropertyInteger($name));
-            }
-            IPS_SetProperty($this->InstanceID, 'IPSViewUseTileDesign', false);
-            IPS_ApplyChanges($this->InstanceID);
         } catch (\Throwable $debugFlowException) {
             $debugFlowFailed = true;
             $this->DebugFlowException(__FUNCTION__, __LINE__, $debugFlowException);
@@ -429,7 +390,8 @@ class EChartsGaugeMulti extends IPSModuleStrict
                 : $this->PreviewItems();
             $title = (string) ($values['Title'] ?? $this->ReadPropertyString('Title'));
             $sourceCountCaption = $this->Translate('Preview shows %d of %d sources');
-            $tileStyle = $this->GaugeStyleFromFormValues($values);
+            $tileStyle = $this->GaugeStyleFromFormValues($values)
+                + ['chartBackgroundColor' => $this->EffectiveChartBackgroundColor(false, $values)];
             $this->UpdateFormField('GaugePreview', 'image', SVGPreviewHelper::dataUri(
                 EChartsGaugeMultiPreview::CreateSvg(
                     $items,
@@ -460,7 +422,8 @@ class EChartsGaugeMulti extends IPSModuleStrict
                         (int) ($values['IPSViewBackgroundColor']
                             ?? $this->ReadPropertyInteger('IPSViewBackgroundColor')),
                         (int) ($values['IPSViewBackgroundOpacityPercent']
-                            ?? $this->ReadPropertyInteger('IPSViewBackgroundOpacityPercent'))
+                            ?? $this->ReadPropertyInteger('IPSViewBackgroundOpacityPercent')),
+                        $this->EffectiveChartBackgroundColor(true, $values)
                     ),
                     $sourceCountCaption,
                     $this->PreviewOptions($values)
@@ -694,14 +657,14 @@ class EChartsGaugeMulti extends IPSModuleStrict
                 'ipsViewTransport'  => $ipsView ? $this->EChartsIPSViewTransportOptions() : null
             ],
             'replacements'       => [
-                '{{ECHARTS_SCRIPT}}'           => EChartsAsset::JavaScript(),
+                '{{ECHARTS_SCRIPT}}'           => EChartsAsset::RendererScript('gauge', $ipsView),
                 '{{ECHARTS_THEME_SCRIPT}}'     => EChartsAsset::ThemeJavaScript(),
                 '{{ECHARTS_DESIGN_SCRIPT}}'    => EChartsAsset::DesignJavaScript() . "\n" . EChartsAsset::SeriesSelectionJavaScript()
                     . "\n" . EChartsAsset::CategoryNavigationJavaScript() . "\n" . EChartsAsset::SourceControlsJavaScript(),
                 '{{IPSVIEW_TRANSPORT_SCRIPT}}' => $ipsView ? $this->EChartsIPSViewTransportJavaScript() : ''
             ]
         ];
-        $html = $this->RenderVisualizationHTMLPage($ipsView, $configuration);
+        $html = $this->RenderChartPage($ipsView, $configuration);
         if (strlen($html) > 1048576) {
             $this->WriteAttributeString('LastError', 'MODEL_TOO_LARGE');
             $this->DebugEChartsSetStatus(self::STATUS_DESIGN_INVALID);
@@ -709,7 +672,7 @@ class EChartsGaugeMulti extends IPSModuleStrict
                 'schemaVersion' => 1, 'family' => 'gauge', 'variant' => 'multi',
                 'status'        => 'error', 'chart' => null, 'error' => self::MODEL_TOO_LARGE_MESSAGE
             ];
-            return $this->RenderVisualizationHTMLPage($ipsView, $configuration);
+            return $this->RenderChartPage($ipsView, $configuration);
         }
         return $html;
     }
@@ -750,6 +713,9 @@ class EChartsGaugeMulti extends IPSModuleStrict
      */
     private function GetConfigurationError(): ?array
     {
+        if (!$this->ChartBackgroundColorsAreValid()) {
+            return ['Status' => self::STATUS_DESIGN_INVALID, 'Message' => 'Select a valid chart background color.'];
+        }
         try {
             $sources = $this->GetValidatedSources();
         } catch (UnexpectedValueException $exception) {
@@ -1304,7 +1270,7 @@ class EChartsGaugeMulti extends IPSModuleStrict
             'family'        => 'gauge',
             'variant'       => 'multi',
             'status'        => 'ready',
-            'chart'         => $chart,
+            'chart'         => $this->WithChartBackground($chart, $ipsView),
             'error'         => null
         ];
     }
@@ -1563,6 +1529,7 @@ class EChartsGaugeMulti extends IPSModuleStrict
     {
         return EChartsGaugeDesign::PreviewFieldNames([
             'Title', 'Sources', 'EnableSourceSelection', 'GaugePreset', 'EChartsTheme', 'IPSViewUseTileDesign',
+            'ChartBackgroundColor', 'IPSViewChartBackgroundColor',
             'IPSViewAdaptToBackground', 'IPSViewBackgroundColor', 'IPSViewBackgroundOpacityPercent',
             'IPSViewGaugePreset', 'IPSViewEChartsTheme'
         ], $this->GaugeDesignFieldNames());
@@ -1602,8 +1569,7 @@ class EChartsGaugeMulti extends IPSModuleStrict
                 'Creates a standalone WebContent variable for use as an IPSView HTML widget.'
             ),
             ['GaugePreset', 'EChartsTheme', ...$this->GaugeDesignFieldNames()],
-            $this->GaugePreviewFormAction(),
-            'ECGM_CopyTileDesignToIPSView($id); return "MESSAGE:Tile design copied to IPSView.";'
+            $this->GaugePreviewFormAction()
         );
     }
 }

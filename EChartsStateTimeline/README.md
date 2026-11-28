@@ -5,7 +5,7 @@ Jede Variable erhält eine eigene Zeile. Geeignet ist das beispielsweise
 für Fensterkontakte, Pumpenbetrieb oder Betriebsarten eines Geräts.
 Das Modul liest nur; es schaltet keine Geräte und verändert keine Archivdaten.
 
-Installation: Im **Symcon-Modulstore** nach **SymconECharts** suchen.
+Installation: Im **Symcon-Modulstore** nach **eCharts** suchen.
 [Voraussetzungen und Einrichtung](../README.md#installation-und-erstes-diagramm)
 (IP-Symcon 9.0/9.1, PHP 8.5, gemeinsames Gateway).
 Alle technischen Felder, Standardwerte und Quellenparameter stehen in der
@@ -79,7 +79,7 @@ Fehlende oder ungültige Daten sowie nicht existierende und doppeldeutige
 Uhrzeiten beim Zeitwechsel werden abgewiesen. Bitte eindeutige Grenzen wählen.
 Ein Fenster über einen Zeitwechsel ist möglich, auch bei nicht ganzstündigen
 Offsetänderungen; seine Dauer entspricht der tatsächlich verstrichenen Zeit.
-Beide Ausgabewege und Vorschauen verwenden dieselben Grenzen. Bestehende
+Beide Ausgabewege starten mit den Zeitgrenzen aus der Vorschau. Bestehende
 Zeiträume, Zustandszuordnungen, Designs und alle Archivbudgets bleiben erhalten.
 
 Aktualisiert wird minütlich. Der Tooltip nennt Quelle, Zustand, Wert, Beginn,
@@ -136,7 +136,12 @@ bleiben. Diese Mausinteraktion ist in der statischen Vorschau nicht darstellbar.
 Der Diagrammtitel steht in der Kachel unter dem nativen Kachelnamen und
 Vergrößerungsbutton. IPSView reserviert diesen zusätzlichen Kopfbereich nicht.
 Zoom vergrößert den Zeitbereich innerhalb des Diagramms, ohne die Konfiguration
-zu ändern. Animation einschließlich Dauer und Bewegungskurve ist einstellbar.
+zu ändern. Mit **Reglerdicke (0 = automatisch)** wählst Du im Kacheldesigner
+und bei eigenem IPSView-Design für jede Ausgabe die Größe. 0 verwendet die
+automatische Größe. Ein Wert von 1 bis 64 Pixeln bestimmt die Höhe der
+Zeitleiste unten und bei mehr als acht Quellen auch die Breite der
+Zeilennavigation rechts. Probiere auf dem Handy zum Beispiel 32 Pixel aus.
+Animation einschließlich Dauer und Bewegungskurve ist einstellbar.
 
 Bei mehr als acht Quellen zeigt das Diagramm einen lesbaren Ausschnitt von
 höchstens acht Zeilen. Mit der senkrechten **Zeilennavigation rechts** sind
@@ -163,6 +168,16 @@ Bei mehr als acht Quellen kennzeichnet die statische Vorschau ausdrücklich
 die ersten acht von insgesamt bis zu 32 Zeilen. Scrollen und Zeitzoom sind
 nur im eigentlichen Diagramm bedienbar.
 
+## Zeitraum im Diagramm wechseln
+
+Aktiviere im **Kacheldesigner** die Option **Zeitraumauswahl anzeigen**. In der
+geöffneten Ansicht kannst du dann zwischen den letzten 24 Stunden, 7 Tagen und
+30 Tagen wechseln. Mit der Standardauswahl kehrst du zum konfigurierten
+Zeitraum zurück, auch bei einem festen historischen Von-/Bis-Zeitraum.
+IPSView übernimmt die Einstellung aus der Kachel oder verwendet dieselbe Option
+im eigenen Designer. Jede Ansicht lädt ihre Archivwerte mit den bisherigen
+Lesegrenzen. Andere geöffnete Ansichten behalten ihre Auswahl.
+
 ## Konfigurationsreferenz und Skriptzugriff
 
 Die [Feldreferenz](../docs/KONFIGURATION.md#echartsstatetimeline) enthält
@@ -188,7 +203,7 @@ oder das Gateway. Alle aufgeführten Argumente beim Symcon-Aufruf übergeben.
 
 | Signatur | Rückgabe und Wirkung |
 | --- | --- |
-| `ECST_CopyTileDesignToIPSView(int $InstanzID): void` | Kopiert das gespeicherte Kacheldesign, ersetzt die unabhängigen IPSView-Designwerte und wendet sie an; aktiviert unabhängiges Design. |
+| `ECST_CopyTileDesignToIPSView(int $InstanzID): void` | Überträgt die gespeicherten Kachelwerte in den geöffneten IPSView-Formularentwurf. Erst **Übernehmen** speichert die Kopie. |
 | `ECST_GetStateTimelineData(int $InstanzID): string` | Liest das reguläre konfigurierte Diagrammmodell als JSON; keine Änderung von Quellen oder Archivwerten. |
 | `ECST_GetStateTimelineDiagnostic(int $InstanzID): string` | JSON-Momentaufnahme der Konfigurationsprüfung und letzten Fehlermeldung; kein Nachweis einer erfolgreichen Datenabfrage. |
 | `ECST_GetIPSViewHTML(int $InstanzID): string` | Vollständiges HTML-Dokument für IPSView; der Rückgabewert bestätigt keine Anzeige in einem Client. |

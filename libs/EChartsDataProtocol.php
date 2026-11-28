@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace SymconECharts;
+namespace eCharts;
 
 use InvalidArgumentException;
 use JsonException;
@@ -25,6 +25,11 @@ final class EChartsDataProtocol
         | JSON_UNESCAPED_SLASHES
         | JSON_UNESCAPED_UNICODE
         | JSON_PRESERVE_ZERO_FRACTION;
+
+    public static function IsValidPeriodKey(mixed $period): bool
+    {
+        return is_string($period) && ($period === '' || preg_match('/^[a-z0-9][a-z0-9-]{0,31}$/D', $period) === 1);
+    }
 
     /**
      * Creates a request payload for the Symcon data-flow envelope.

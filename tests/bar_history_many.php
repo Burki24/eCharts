@@ -80,8 +80,20 @@ declare(strict_types=1);
     };
 
     try {
+        require_once __DIR__ . '/cartesian_period_selection.php';
+        verifyCartesianPeriodSelection($configure([$sources[0]], 'raw', 200), $now, $requests);
         $defaults = new TestableEChartsBarHistory();
         $defaults->Create();
+        assertGatewayGauge(
+            $defaults->GetTestProperties()['Orientation'] === 'vertical'
+            && $defaults->GetTestProperties()['IPSViewOrientation'] === 'vertical',
+            'Both Historical Bar designers must default to vertical columns.'
+        );
+        assertGatewayGauge(
+            $defaults->GetTestProperties()['ValueAxisSpacing'] === 0
+            && $defaults->GetTestProperties()['IPSViewValueAxisSpacing'] === 0,
+            'Old and new configurations must use automatic value-axis spacing in both outputs.'
+        );
         assertGatewayGauge(
             $defaults->GetTestProperties()['PointBudget'] === 1000,
             'The established Historical Bar point-budget default must remain 1000.'
@@ -97,12 +109,105 @@ declare(strict_types=1);
             'Old sixteen-source configurations must remain byte-identical and initially show every row.'
         );
         $rows = array_slice($sources, 0, 32);
+        $axisRows = array_slice($sources, 0, 4);
+        $axisRows[0] = array_merge($axisRows[0], ['AxisPosition' => 'left', 'AxisRangeMode' => 'manual',
+            'AxisMinimum'                                        => 0, 'AxisMaximum' => 100]);
+        $axisRows[1] = array_merge($axisRows[1], ['Unit' => '°C', 'AxisPosition' => 'left', 'AxisRangeMode' => 'manual',
+            'AxisMinimum'                                => -20, 'AxisMaximum' => 40]);
+        $axisRows[2] = array_merge($axisRows[2], ['Unit' => '°C', 'OwnAxis' => true, 'AxisPosition' => 'right',
+            'AxisRangeMode'                              => 'manual', 'AxisMinimum' => 20, 'AxisMaximum' => 60]);
+        $axisRows[3]['Unit'] = '°C';
+        $axisModule = $configure($axisRows, 'raw', 200);
+        $axisModule->ApplyChanges();
+        $axisData = $decode($axisModule);
+        $axisForm = json_decode($axisModule->GetConfigurationForm(), true, 512, JSON_THROW_ON_ERROR);
+        $sourceList = findGaugeFormElement($axisForm['elements'], 'Sources');
+        assertGatewayGauge(
+            findGaugeFormElement($sourceList['columns'], 'OwnAxis')['add'] === false
+            && findGaugeFormElement($sourceList['form'], 'OwnAxis')['type'] === 'CheckBox'
+            && findGaugeFormElement($sourceList['form'], 'AxisPosition')['type'] === 'Select'
+            && array_column(findGaugeFormElement($sourceList['form'], 'AxisRangeMode')['options'], 'value') === ['auto', 'presentation', 'manual'],
+            'The source editor must expose both axis sides and all axis range modes, with individual axes opt-in.'
+        );
+        assertGatewayGauge(
+            array_column($axisData['series'], 'axisIndex') === [0, 1, 2, 1]
+            && array_column($axisData['axes'], 'position') === ['left', 'left', 'right']
+            && array_column($axisData['axes'], 'minimum') === [0.0, -20.0, 20.0]
+            && array_column($axisData['axes'], 'maximum') === [100.0, 40.0, 60.0],
+            'Equal-unit shared and individual series must resolve their own scales and sides in source order.'
+        );
+        foreach (['ValueAxisSpacing', 'IPSViewValueAxisSpacing'] as $field) {
+            $control = findGaugeFormElement($axisForm['elements'], $field);
+            assertGatewayGauge(
+                $control['minimum'] === 0 && $control['maximum'] === 120
+                && str_contains($control['onChange'], 'ECBH_UpdateBarPreviewFromForm'),
+                'Each spacing control must update the unsaved previews.'
+            );
+        }
+        $axisModule->UpdateBarPreviewFromForm(json_encode(['Sources' => $axisRows, 'Orientation' => 'horizontal',
+            'ValueAxisSpacing'                                       => 18, 'IPSViewValueAxisSpacing' => 48,
+            'IPSViewUseTileDesign'                                   => false, 'IPSViewOrientation' => 'vertical',
+            'ZoomSliderSize'                                         => 28, 'IPSViewZoomSliderSize' => 45], JSON_THROW_ON_ERROR));
+        foreach (array_slice($axisModule->GetTestFormUpdates(), -2) as $image) {
+            $svg = base64_decode(substr($image['Value'], strlen('data:image/svg+xml;base64,')), true);
+            assertGatewayGauge(
+                str_contains($svg, '°C -20 … 40') && str_contains($svg, '°C 20 … 60')
+                && substr_count($svg, 'data-preview-axis="' . ($image['Field'] === 'BarPreview' ? 'bottom' : 'left') . '"') === 2,
+                'Both previews must display the configured ranges of separate equal-unit axes.'
+            );
+            $tile = $image['Field'] === 'BarPreview';
+            $xml = new DOMDocument();
+            $xml->loadXML($svg);
+            $track = (new DOMXPath($xml))->query('//*[@data-preview-zoom]')->item(0);
+            assertGatewayGauge(
+                $track !== null && $track->getAttribute($tile ? 'width' : 'height') === ($tile ? '28' : '45'),
+                'Each draft must resize the time slider across its time axis.'
+            );
+            $axes = (new DOMXPath($xml))->query('//*[@data-preview-axis="' . ($tile ? 'bottom' : 'left') . '"]');
+            $coordinate = $tile ? 'y1' : 'x1';
+            $spacing = abs((float) $axes->item(0)->getAttribute($coordinate) - (float) $axes->item(1)->getAttribute($coordinate));
+            assertGatewayGauge($spacing === ($tile ? 18.0 : 48.0), 'Each draft must position both axis lines at its requested distance.');
+        }
+        $axisModule->SetTestProperty('EnableIPSView', true);
+        $axisModule->SetTestProperty('ValueAxisSpacing', 18);
+        $axisModule->SetTestProperty('IPSViewValueAxisSpacing', 48);
+        $axisModule->SetTestProperty('ZoomSliderSize', 28);
+        $axisModule->SetTestProperty('IPSViewZoomSliderSize', 45);
+        $axisModule->ApplyChanges();
+        assertGatewayGauge(str_contains($axisModule->GetIPSViewHTML(), '"valueAxisSpacing":18'), 'IPSView inherits the tile spacing.');
+        assertGatewayGauge(str_contains($axisModule->GetIPSViewHTML(), '"zoomSliderSize":28'), 'IPSView inherits the tile slider.');
+        $axisModule->SetTestProperty('IPSViewUseTileDesign', false);
+        $axisModule->ApplyChanges();
+        assertGatewayGauge(
+            str_contains($axisModule->GetIPSViewHTML(), '"valueAxisSpacing":48')
+            && $decode($axisModule)['bar']['style']['valueAxisSpacing'] === 18
+            && str_contains($axisModule->GetIPSViewHTML(), '"zoomSliderSize":45')
+            && $decode($axisModule)['bar']['style']['zoomSliderSize'] === 28,
+            'Independent designer values must reach their respective charts.'
+        );
+        copyDesignAndApplyForm($axisModule);
+        assertGatewayGauge($axisModule->GetTestProperties()['IPSViewValueAxisSpacing'] === 18, 'Copying the design includes its spacing.');
+        assertGatewayGauge($axisModule->GetTestProperties()['IPSViewZoomSliderSize'] === 28, 'Copying the design includes its slider.');
+        $ownStack = $axisRows;
+        $ownStack[2]['StackGroup'] = 1;
+        $invalidOwnStack = $configure($ownStack, 'hour');
+        $invalidOwnStack->ApplyChanges();
+        assertGatewayGauge($invalidOwnStack->GetTestStatus() === 201, 'A stack cannot have a separate per-series value axis.');
+        foreach ([['OwnAxis' => null], ['AxisRangeMode' => 'unknown'], ['AxisRangeMode' => 'manual', 'AxisMinimum' => 60]] as $invalid) {
+            $invalidRange = $configure([array_replace($axisRows[2], $invalid)], 'raw', 200);
+            $invalidRange->ApplyChanges();
+            assertGatewayGauge($invalidRange->GetTestStatus() === 201, 'Explicit invalid axis settings must be rejected.');
+        }
+        $axisLimit = $configure(array_map(static fn (array $row): array => $row + ['OwnAxis' => true], array_slice($rows, 0, 17)));
+        $axisLimit->ApplyChanges();
+        assertGatewayGauge($axisLimit->GetTestStatus() === 201, 'Individual axes must count towards the existing sixteen-axis limit.');
         foreach ($rows as $index => &$row) {
             $row['InitiallyVisible'] = $index < 4;
         }
         unset($row);
         $module = $configure($rows);
         $module->SetTestProperty('EnableIPSView', true);
+        $module->SetTestProperty('Orientation', 'horizontal');
         $properties = $module->GetTestProperties();
         $module->ApplyChanges();
         assertGatewayGauge($module->GetTestStatus() === IS_ACTIVE, 'Historical Bar must accept 32 sources and 32000 points.');
@@ -133,8 +238,9 @@ declare(strict_types=1);
             $documentBytes[] = strlen($html);
             $restored = $startup($html)['chart'];
             assertGatewayGauge(
-                $restored['series'] === $model['series'] && $restored['range'] === $model['range'],
-                'Both output adapters must retain every hidden source and all 32000 points exactly.'
+                $restored['bar']['style']['orientation'] === 'horizontal'
+                && $restored['series'] === $model['series'] && $restored['range'] === $model['range'],
+                'Both outputs must use the inherited horizontal design and retain all hidden sources and all 32000 points.'
             );
         }
         $form = json_decode($module->GetConfigurationForm(), true, 512, JSON_THROW_ON_ERROR);
@@ -142,8 +248,25 @@ declare(strict_types=1);
             findGaugeFormElement($form['elements'], 'PointBudget')['maximum'] === 32000,
             'The Historical Bar form must expose the expanded total budget.'
         );
+        foreach (['Orientation', 'IPSViewOrientation'] as $field) {
+            $selector = findGaugeFormElement($form['elements'], $field);
+            assertGatewayGauge(
+                array_column($selector['options'], 'value') === ['vertical', 'horizontal']
+                && str_contains($selector['onChange'], 'ECBH_UpdateBarPreviewFromForm'),
+                'Both orientation selectors must update draft previews.'
+            );
+        }
         $module->UpdateBarPreviewFromForm(json_encode(['Sources' => array_reverse($rows),
-            'Title'                                              => 'Unsaved synthetic draft', 'IPSViewUseTileDesign' => false], JSON_THROW_ON_ERROR));
+            'Title'                                              => 'Unsaved synthetic draft', 'IPSViewUseTileDesign' => false,
+            'Orientation'                                        => 'horizontal', 'IPSViewOrientation' => 'vertical'], JSON_THROW_ON_ERROR));
+        $images = array_column(array_slice($module->GetTestFormUpdates(), -2), 'Value', 'Field');
+        foreach (['BarPreview' => 'vertical', 'IPSViewBarPreview' => 'horizontal'] as $field => $sliderDirection) {
+            $svg = base64_decode(substr($images[$field], strlen('data:image/svg+xml;base64,')), true);
+            assertGatewayGauge(
+                str_contains($svg, 'data-preview-zoom="' . $sliderDirection . '"'),
+                'Each draft preview must place its slider along its own time axis.'
+            );
+        }
         assertGatewayGauge($module->GetTestProperties() === $properties, 'Preview drafts must not persist sources or designs.');
         $GLOBALS['symconTestVariables'][97031]['Name'] = 'Renamed synthetic sensor';
         $renamed = $decode($module);
@@ -176,6 +299,48 @@ declare(strict_types=1);
         $cap = $configure(array_slice($rows, 0, 2));
         $cap->ApplyChanges();
         assertGatewayGauge($decode($cap)['range']['pointLimitPerSeries'] === 2000, 'The per-source archive cap must remain 2000.');
+        $stackRows = array_slice($rows, 0, 3);
+        $stackRows[0]['StackGroup'] = 32;
+        $stackRows[1]['StackGroup'] = 32;
+        $stacked = $configure($stackRows, 'hour', 300);
+        $stacked->ApplyChanges();
+        $stackModel = $decode($stacked);
+        assertGatewayGauge(
+            array_column($stackModel['series'], 'stackGroup') === [32, 32]
+            && $stackModel['range']['aggregationLevel'] === 0 && $stackModel['range']['pointLimitPerSeries'] === 100,
+            'Only grouped archive sources carry stack metadata; their query and shared limit stay unchanged.'
+        );
+        $stacked->UpdateBarPreviewFromForm('{"Orientation":"horizontal","IPSViewOrientation":"vertical","IPSViewUseTileDesign":false}');
+        $stackImages = array_filter($stacked->GetTestFormUpdates(), static fn (array $update): bool => in_array($update['Field'], ['BarPreview', 'IPSViewBarPreview'], true) && $update['Parameter'] === 'image');
+        assertGatewayGauge(count($stackImages) >= 2, 'Both designers must supply stack previews.');
+        foreach ($stackImages as $image) {
+            $xml = new DOMDocument();
+            $xml->loadXML(base64_decode(substr($image['Value'], strlen('data:image/svg+xml;base64,'))));
+            $bars = (new DOMXPath($xml))->query('//*[local-name()="rect" and @x and @fill-opacity]');
+            [$first, $second, $third] = [$bars->item(0), $bars->item(1), $bars->item(2)];
+            if ($image['Field'] === 'BarPreview') {
+                assertGatewayGauge(
+                    $first->getAttribute('y') === $second->getAttribute('y')
+                    && $first->getAttribute('y') !== $third->getAttribute('y')
+                    && abs((float) $first->getAttribute('x') + (float) $first->getAttribute('width') - (float) $second->getAttribute('x')) < 0.1,
+                    'A horizontal preview stack must have adjoining segments in one row, with the independent series in a separate row.'
+                );
+                continue;
+            }
+            assertGatewayGauge(
+                $first->getAttribute('x') === $second->getAttribute('x')
+                && $first->getAttribute('x') !== $third->getAttribute('x')
+                && abs((float) $first->getAttribute('y') - (float) $second->getAttribute('y') - (float) $second->getAttribute('height')) < 0.1,
+                'Stacked preview segments must touch and independent bars must stand beside them.'
+            );
+        }
+        $mixedUnits = $stackRows;
+        $mixedUnits[1]['Unit'] = 'kW';
+        foreach ([[$mixedUnits, 'auto'], [$stackRows, 'raw']] as [$invalidSources, $invalidMode]) {
+            $invalidStack = $configure($invalidSources, $invalidMode);
+            $invalidStack->ApplyChanges();
+            assertGatewayGauge($invalidStack->GetTestStatus() === 201, 'Raw stacks and incompatible stack units must be rejected.');
+        }
         foreach (['auto', 'minute', 'five-minutes', 'fifteen-minutes', 'hour', 'day'] as $mode) {
             $aggregate = $configure($rows, $mode);
             $aggregate->ApplyChanges();

@@ -16,14 +16,27 @@
         ];
     }
 
-    function sliderThickness(compact) {
-        return compact ? 8 : 12;
+    function sliderThickness(compact, configured, automaticSize) {
+        var automatic = automaticSize == null ? (compact ? 8 : 12) : automaticSize;
+        return window.SYMC_ECHARTS_DESIGN.sliderSize(configured, automatic);
     }
 
-    function timeAxisOptions(enabled, mode, sliderBottom, compact) {
+    function timeAxisOptions(enabled, mode, sliderBottom, compact, vertical, configured) {
         var result = options(enabled, mode, sliderBottom);
         if (result.length > 1) {
-            result[1].height = sliderThickness(compact);
+            if (vertical) {
+                result.forEach(function (entry) {
+                    delete entry.xAxisIndex;
+                    entry.yAxisIndex = 0;
+                    entry.orient = 'vertical';
+                });
+                result[1].right = compact ? 8 : 12;
+                result[1].width = sliderThickness(compact, configured);
+                result[1].top = 20;
+                result[1].bottom = 20;
+            } else {
+                result[1].height = sliderThickness(compact, configured);
+            }
             if (compact) { result[1].showDetail = false; }
         }
         return result;
@@ -31,30 +44,17 @@
 
     // Category-time charts keep every loaded value in the numeric-axis scale.
     // The existing time-axis consumers retain their previous filtering contract.
-    function categoryTimeOptions(enabled, compact, vertical, sliderBottom, axisIndexes) {
-        var result = timeAxisOptions(enabled, 'ipsview', sliderBottom, compact);
+    function categoryTimeOptions(enabled, compact, vertical, sliderBottom, axisIndexes, configured) {
+        var result = timeAxisOptions(enabled, 'ipsview', sliderBottom, compact, vertical, configured);
         result.forEach(function (entry) {
             entry.filterMode = 'none';
             entry.minSpan = 1;
-            if (vertical) {
-                delete entry.xAxisIndex;
-                entry.yAxisIndex = 0;
-                entry.orient = 'vertical';
-            }
             if (axisIndexes) { entry[vertical ? 'yAxisIndex' : 'xAxisIndex'] = axisIndexes; }
         });
         if (result[1]) {
             result[1].showDataShadow = false;
             result[1].showDetail = false;
-            result[1].handleSize = 14;
-            if (vertical) {
-                delete result[1].bottom;
-                delete result[1].height;
-                result[1].right = compact ? 8 : 12;
-                result[1].width = sliderThickness(compact);
-                result[1].top = 20;
-                result[1].bottom = 20;
-            }
+            result[1].handleSize = sliderThickness(compact, configured, 14);
         }
         return result;
     }
@@ -102,7 +102,7 @@
         chart.setOption(option, true);
     }
 
-    function cartesianOptions(enabled, mode, compact) {
+    function cartesianOptions(enabled, mode, compact, configured) {
         if (!enabled) { return []; }
         var inside = { type: 'inside', start: 0, end: 100, filterMode: 'none',
             zoomOnMouseWheel: mode !== 'ipsview', moveOnMouseWheel: false };
@@ -110,11 +110,11 @@
             Object.assign({ id: 'x-inside', xAxisIndex: 0 }, inside),
             Object.assign({ id: 'y-inside', yAxisIndex: 0 }, inside),
             { id: 'x-slider', type: 'slider', xAxisIndex: 0, start: 0, end: 100,
-                filterMode: 'none', bottom: compact ? 10 : 14, height: sliderThickness(compact),
-                showDataShadow: false, showDetail: false, handleSize: 12 },
+                filterMode: 'none', bottom: compact ? 10 : 14, height: sliderThickness(compact, configured),
+                showDataShadow: false, showDetail: false, handleSize: sliderThickness(compact, configured, 12) },
             { id: 'y-slider', type: 'slider', yAxisIndex: 0, orient: 'vertical', start: 0, end: 100,
-                filterMode: 'none', right: compact ? 8 : 12, width: sliderThickness(compact),
-                showDataShadow: false, showDetail: false, handleSize: 12 }
+                filterMode: 'none', right: compact ? 8 : 12, width: sliderThickness(compact, configured),
+                showDataShadow: false, showDetail: false, handleSize: sliderThickness(compact, configured, 12) }
         ];
     }
 
@@ -193,9 +193,9 @@
             var current = capture(chart, null, null);
             if (!current) { return; }
             var bounds = element.getBoundingClientRect();
-            var direction = getDirection ? getDirection() : {};
+            var direction = getDirection ? getDirection() : null;
             var anchor;
-            if (getDirection && typeof chart.getModel === 'function') {
+            if (direction && typeof chart.getModel === 'function') {
                 var rect = null;
                 for (var index = 0; index < (direction.gridCount || 1); index += 1) {
                     var grid = chart.getModel().getComponent('grid', index);
@@ -214,11 +214,11 @@
                 }
             }
             if (anchor === undefined) {
-                anchor = direction.vertical
+                anchor = direction && direction.vertical
                     ? (bounds.height > 0 ? 1 - (Number(event.clientY) - bounds.top) / bounds.height : 0.5)
                     : (bounds.width > 0 ? (Number(event.clientX) - bounds.left) / bounds.width : 0.5);
             }
-            if (direction.inverse) { anchor = 1 - anchor; }
+            if (direction && direction.inverse) { anchor = 1 - anchor; }
             var next = zoomWindow(current, delta, anchor);
             event.preventDefault();
             event.stopPropagation();
@@ -231,7 +231,7 @@
         });
     }
 
-    window.SymconEChartsZoom = {
+    window.eChartsZoom = {
         options: options,
         sliderThickness: sliderThickness,
         timeAxisOptions: timeAxisOptions,

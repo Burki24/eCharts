@@ -239,6 +239,19 @@
                     "type": "RowLayout",
                     "items": [
                         {
+                            "type": "NumberSpinner",
+                            "name": "ZoomSliderSize",
+                            "caption": "Slider thickness (0 = automatic)",
+                            "minimum": 0,
+                            "maximum": 64,
+                            "suffix": "px"
+                        }
+                    ]
+                },
+                {
+                    "type": "RowLayout",
+                    "items": [
+                        {
                             "type": "SelectColor",
                             "name": "StartColor",
                             "caption": "Start color",
@@ -316,8 +329,7 @@
                 },
                 {
                     "type": "Button",
-                    "caption": "Copy Tile design to IPSView and edit independently",
-                    "onClick": "ECBW_CopyTileDesignToIPSView($id); return \"MESSAGE:Tile design copied to IPSView.\";"
+                    "caption": "Copy Tile design to IPSView and edit independently"
                 },
                 {
                     "type": "ExpansionPanel",
@@ -405,6 +417,19 @@
                                     "minimum": 20,
                                     "maximum": 100,
                                     "suffix": "%"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "RowLayout",
+                            "items": [
+                                {
+                                    "type": "NumberSpinner",
+                                    "name": "IPSViewZoomSliderSize",
+                                    "caption": "Slider thickness (0 = automatic)",
+                                    "minimum": 0,
+                                    "maximum": 64,
+                                    "suffix": "px"
                                 }
                             ]
                         },

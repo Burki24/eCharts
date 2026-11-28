@@ -6,7 +6,7 @@ vier weitere Quellen werden als gleich große Nebeninstrumente angeordnet. Bei
 vier und fünf Quellen nutzt eine eigene Anordnung den verfügbaren Platz breiter
 Kacheln aus, ohne das Hauptinstrument zu verkleinern.
 
-Installation: Im **Symcon-Modulstore** nach **SymconECharts** suchen.
+Installation: Im **Symcon-Modulstore** nach **eCharts** suchen.
 [Voraussetzungen und Einrichtung](../README.md#installation-und-erstes-diagramm)
 (IP-Symcon 9.0/9.1, PHP 8.5, gemeinsames Gateway).
 Alle technischen Felder, Standardwerte und Quellenparameter stehen in der
@@ -53,7 +53,7 @@ Im Kachel- und unabhängigen IPSView-Designer steuern **Animation**, **Startanim
 
 ## Installation und Einrichtung
 
-Das Modul wird über den **Symcon-Modulstore** mit der Library **SymconECharts**
+Das Modul wird über den **Symcon-Modulstore** mit der Library **eCharts**
 installiert. Für jedes Tacho-Cockpit wird eine EChartsGaugeTacho-Instanz angelegt und mit dem
 gemeinsamen Gateway verbunden. Anschließend werden die Quellen in der
 gewünschten Anzeigereihenfolge hinzugefügt.
@@ -88,11 +88,10 @@ Für ein eigenes IPSView-Grunddesign im Abschnitt **IPSView-Design** zuerst
 **Kacheldesign verwenden** ausschalten. Solange die Option aktiv ist, sind die
 eigenen Designfelder und der Knopf **Kacheldesign nach IPSView kopieren und
 unabhängig bearbeiten** direkt im Abschnitt **IPSView-Design** deaktiviert.
-Nach dem Ausschalten werden beide sofort aktiv. Der Knopf kopiert das
-gespeicherte Kacheldesign einmalig und überschreibt dabei bisherige
-unabhängige IPSView-Designwerte. Danach lassen sich Grunddesign
+Nach dem Ausschalten kopiert der Knopf die aktuellen Kachelfelder in den
+IPSView-Designer. Die Vorschau zeigt auch ungespeicherte Änderungen sofort. Danach lassen sich Grunddesign
 und individuelle Quellen-Designs für IPSView separat bearbeiten.
-Änderungen am Kacheldesigner vor dem Kopieren speichern.
+Mit **Übernehmen** speicherst Du das bearbeitete Design.
 
 ## Variablen
 
@@ -127,7 +126,7 @@ oder das Gateway. Alle aufgeführten Argumente beim Symcon-Aufruf übergeben.
 
 | Signatur | Rückgabe und Wirkung |
 | --- | --- |
-| `ECGT_CopyTileDesignToIPSView(int $InstanzID): void` | Kopiert das gespeicherte Kacheldesign, ersetzt die unabhängigen IPSView-Designwerte und wendet sie an; aktiviert unabhängiges Design. |
+| `ECGT_CopyTileDesignToIPSView(int $InstanzID): void` | Überträgt die gespeicherten Kachelwerte in den geöffneten IPSView-Formularentwurf. Erst **Übernehmen** speichert die Kopie. |
 | `ECGT_GetGaugeData(int $InstanzID): string` | Liest das reguläre konfigurierte Diagrammmodell als JSON; keine Änderung von Quellen oder Archivwerten. |
 | `ECGT_GetIPSViewHTML(int $InstanzID): string` | Vollständiges HTML-Dokument für IPSView; der Rückgabewert bestätigt keine Anzeige in einem Client. |
 

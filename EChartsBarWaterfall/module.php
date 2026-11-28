@@ -11,22 +11,23 @@ use Burki24\SymconModuleHelper\IPSViewHTMLPageHelper;
 use Burki24\SymconModuleHelper\ResponsiveVisualizationHelper;
 use Burki24\SymconModuleHelper\VisualizationAssetHelper;
 use Burki24\SymconModuleHelper\VisualizationThemeHelper;
-use SymconECharts\EChartsAnimationDesign;
-use SymconECharts\EChartsAsset;
-use SymconECharts\EChartsBarPreview;
-use SymconECharts\EChartsBarPreviewForm;
-use SymconECharts\EChartsBarTypography;
-use SymconECharts\EChartsCurrentSources;
-use SymconECharts\EChartsDesignerSections;
-use SymconECharts\EChartsIPSViewBackground;
-use SymconECharts\EChartsIPSViewDesignForm;
-use SymconECharts\EChartsIPSViewTransport;
-use SymconECharts\EChartsLabelDesign;
-use SymconECharts\EChartsPreviewSourceCount;
-use SymconECharts\EChartsSourceIdentity;
-use SymconECharts\EChartsTransientRefresh;
-use SymconECharts\EChartsVariablePresentation;
-use SymconECharts\WaterfallData;
+use eCharts\EChartsAnimationDesign;
+use eCharts\EChartsAsset;
+use eCharts\EChartsBarPreview;
+use eCharts\EChartsBarPreviewForm;
+use eCharts\EChartsBarTypography;
+use eCharts\EChartsCurrentSources;
+use eCharts\EChartsDesignerSections;
+use eCharts\EChartsIPSViewBackground;
+use eCharts\EChartsIPSViewDesignForm;
+use eCharts\EChartsIPSViewTransport;
+use eCharts\EChartsLabelDesign;
+use eCharts\EChartsPreviewSourceCount;
+use eCharts\EChartsSliderSize;
+use eCharts\EChartsSourceIdentity;
+use eCharts\EChartsTransientRefresh;
+use eCharts\EChartsVariablePresentation;
+use eCharts\WaterfallData;
 
 require_once __DIR__ . '/../libs/helper/ConfigurationFormHelper.php';
 require_once __DIR__ . '/../libs/helper/DataFlowHelper.php';
@@ -56,7 +57,7 @@ require_once __DIR__ . '/WaterfallData.php';
 class EChartsBarWaterfall extends IPSModuleStrict
 {
     use \Burki24\SymconModuleHelper\DebugFlowHelper;
-    use \SymconECharts\EChartsDebugFlow;
+    use \eCharts\EChartsDebugFlow;
 
     use ConfigurationFormHelper;
     use EChartsAnimationDesign;
@@ -106,6 +107,7 @@ class EChartsBarWaterfall extends IPSModuleStrict
             $this->RegisterPropertyString('Title', '');
             $this->RegisterPropertyString('TotalLabel', '');
             $this->RegisterDesignProperties();
+            $this->RegisterChartBackgroundProperties();
             $this->RegisterIPSViewHTMLPageProperties();
             $this->RegisterEChartsIPSViewTransport();
             $this->RegisterPropertyBoolean('IPSViewUseTileDesign', true);
@@ -208,7 +210,7 @@ class EChartsBarWaterfall extends IPSModuleStrict
                 array_map(static fn (string $name): string => 'IPSView' . $name, array_keys($this->DesignPropertyNames()))
             );
 
-            return $debugFlowResult = $this->EncodeConfigurationForm($this->WithBarPreviewForm($form, 'ECBW', $fields));
+            return $debugFlowResult = $this->EncodeChartDesignerForm(__DIR__, $this->WithBarPreviewForm($form, 'ECBW', $fields));
         } catch (\Throwable $debugFlowException) {
             $debugFlowFailed = true;
             $this->DebugFlowException(__FUNCTION__, __LINE__, $debugFlowException);
@@ -229,31 +231,6 @@ class EChartsBarWaterfall extends IPSModuleStrict
             }
 
             throw new InvalidArgumentException('Unknown action: ' . $Ident);
-        } catch (\Throwable $debugFlowException) {
-            $debugFlowFailed = true;
-            $this->DebugFlowException(__FUNCTION__, __LINE__, $debugFlowException);
-            throw $debugFlowException;
-        } finally {
-            $this->DebugFlowEnd(__FUNCTION__, __LINE__, $debugFlowResult, $debugFlowFailed, true);
-        }
-    }
-
-    public function CopyTileDesignToIPSView(): void
-    {
-        $debugFlowResult = null;
-        $debugFlowFailed = false;
-        $this->DebugFlowStart(__FUNCTION__, __LINE__);
-        try {
-            foreach ($this->DesignPropertyNames() as $name => $type) {
-                $value = match ($type) {
-                    'string'  => $this->ReadPropertyString($name),
-                    'boolean' => $this->ReadPropertyBoolean($name),
-                    default   => $this->ReadPropertyInteger($name)
-                };
-                IPS_SetProperty($this->InstanceID, 'IPSView' . $name, $value);
-            }
-            IPS_SetProperty($this->InstanceID, 'IPSViewUseTileDesign', false);
-            IPS_ApplyChanges($this->InstanceID);
         } catch (\Throwable $debugFlowException) {
             $debugFlowFailed = true;
             $this->DebugFlowException(__FUNCTION__, __LINE__, $debugFlowException);
@@ -560,7 +537,7 @@ class EChartsBarWaterfall extends IPSModuleStrict
                     . EChartsBarPreview::E(EChartsBarPreview::FormatValue($value, $previewDecimals, $previewUnit, $language)) . '</text>';
             }
         }
-        return EChartsPreviewSourceCount::Append(
+        $svg = EChartsPreviewSourceCount::Append(
             $svg . '</svg>',
             $shownSources,
             count($data['items']),
@@ -568,6 +545,14 @@ class EChartsBarWaterfall extends IPSModuleStrict
             $palette['muted'],
             696,
             351
+        );
+        return EChartsBarPreview::WithCategorySlider(
+            $svg,
+            false,
+            $this->BarPreviewValue($values, 'ZoomSliderSize', 'integer', $ipsView),
+            count($items),
+            count($steps),
+            $palette
         );
     }
 
@@ -604,18 +589,18 @@ class EChartsBarWaterfall extends IPSModuleStrict
                 'ipsViewTransport'  => $ipsView ? $this->EChartsIPSViewTransportOptions() : null
             ],
             'replacements'       => [
-                '{{ECHARTS_SCRIPT}}'           => EChartsAsset::CartesianJavaScript(),
+                '{{ECHARTS_SCRIPT}}'           => EChartsAsset::RendererScript('cartesian', $ipsView),
                 '{{ECHARTS_THEME_SCRIPT}}'     => EChartsAsset::ThemeJavaScript(),
                 '{{ECHARTS_DESIGN_SCRIPT}}'    => EChartsAsset::DesignJavaScript() . "\n" . EChartsAsset::CategoryNavigationJavaScript(),
                 '{{IPSVIEW_TRANSPORT_SCRIPT}}' => $ipsView ? $this->EChartsIPSViewTransportJavaScript() : ''
             ]
         ];
-        $html = $this->RenderVisualizationHTMLPage($ipsView, $configuration);
+        $html = $this->RenderChartPage($ipsView, $configuration);
         if (strlen($html) > 1048576) {
             $this->WriteAttributeString('LastError', 'MODEL_TOO_LARGE');
             $this->DebugEChartsSetStatus(self::STATUS_DESIGN_INVALID);
             $configuration['state'] = $this->ErrorState(self::MODEL_TOO_LARGE_MESSAGE);
-            return $this->RenderVisualizationHTMLPage($ipsView, $configuration);
+            return $this->RenderChartPage($ipsView, $configuration);
         }
         return $html;
     }
@@ -648,6 +633,9 @@ class EChartsBarWaterfall extends IPSModuleStrict
     /** @return array{Status:int, Message:string}|null */
     private function GetConfigurationError(): ?array
     {
+        if (!$this->ChartBackgroundColorsAreValid()) {
+            return ['Status' => self::STATUS_DESIGN_INVALID, 'Message' => 'Select a valid chart background color.'];
+        }
         try {
             $this->GetValidatedSources();
         } catch (Throwable $exception) {
@@ -755,7 +743,7 @@ class EChartsBarWaterfall extends IPSModuleStrict
             'family'        => 'bar',
             'variant'       => 'waterfall',
             'status'        => 'ready',
-            'chart'         => $chart,
+            'chart'         => $this->WithChartBackground($chart, $ipsView),
             'error'         => null
         ];
     }
@@ -837,6 +825,7 @@ class EChartsBarWaterfall extends IPSModuleStrict
         $this->RegisterPropertyString($prefix . 'ValueLabelPosition', 'auto');
         $this->RegisterPropertyInteger($prefix . 'ValueLabelDistance', 5);
         $this->RegisterPropertyBoolean($prefix . 'ShowGrid', true);
+        $this->RegisterPropertyInteger($prefix . 'ZoomSliderSize', 0);
         $this->RegisterPropertyInteger($prefix . 'BarWidthPercent', 60);
         $this->RegisterPropertyInteger($prefix . 'StartColor', -1);
         $this->RegisterPropertyInteger($prefix . 'IncreaseColor', -1);
@@ -855,6 +844,7 @@ class EChartsBarWaterfall extends IPSModuleStrict
             'ValueLabelPosition'      => 'string',
             'ValueLabelDistance'      => 'integer',
             'ShowGrid'                => 'boolean',
+            'ZoomSliderSize'          => 'integer',
             'BarWidthPercent'         => 'integer',
             'StartColor'              => 'integer',
             'IncreaseColor'           => 'integer',
@@ -878,6 +868,7 @@ class EChartsBarWaterfall extends IPSModuleStrict
             || !EChartsLabelDesign::IsValidPosition($this->ReadPropertyString($prefix . 'ValueLabelPosition'), EChartsLabelDesign::CARTESIAN_POSITIONS)
             || !EChartsLabelDesign::IsValidDistance($this->ReadPropertyInteger($prefix . 'ValueLabelDistance'))
             || !EChartsAsset::IsSupportedTheme($this->ReadPropertyString($prefix . 'EChartsTheme'))
+            || !EChartsSliderSize::IsValid($this->ReadPropertyInteger($prefix . 'ZoomSliderSize'))
             || $this->ReadPropertyInteger($prefix . 'BarWidthPercent') < 20
             || $this->ReadPropertyInteger($prefix . 'BarWidthPercent') > 100
         ) {
@@ -911,6 +902,7 @@ class EChartsBarWaterfall extends IPSModuleStrict
             'valueLabelPosition' => $this->ReadPropertyString($prefix . 'ValueLabelPosition'),
             'valueLabelDistance' => $this->ReadPropertyInteger($prefix . 'ValueLabelDistance'),
             'showGrid'           => $this->ReadPropertyBoolean($prefix . 'ShowGrid'),
+            'zoomSliderSize'     => $this->ReadPropertyInteger($prefix . 'ZoomSliderSize'),
             'barWidthPercent'    => $this->ReadPropertyInteger($prefix . 'BarWidthPercent'),
             'colors'             => $colors,
             ...$this->ReadBarTypography(array_keys(self::TEXT_FONTS), array_keys(self::TEXT_COLORS), $prefix)

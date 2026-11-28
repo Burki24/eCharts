@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use SymconECharts\EChartsDataProtocol;
+use eCharts\EChartsDataProtocol;
 
 // Included by gateway_gauges.php: exercise the real module/Gateway with its existing kernel doubles.
 require_once dirname(__DIR__) . '/EChartsCalendar/module.php';
@@ -116,12 +116,7 @@ $calendar->SetTestProperty('UseFixedColorRange', true);
 $calendar->SetTestProperty('ColorScaleMinimum', -10.25);
 $calendar->SetTestProperty('ColorScaleMaximum', 35.75);
 $calendar->SetTestProperty('MonthLabelPosition', 'end');
-$GLOBALS['symconTestCopyTarget'] = $calendar;
-try {
-    $calendar->CopyTileDesignToIPSView();
-} finally {
-    unset($GLOBALS['symconTestCopyTarget']);
-}
+copyDesignAndApplyForm($calendar);
 assertGatewayGauge(
     str_contains($calendar->GetIPSViewHTML(), '"lowColor":"#5070DD"')
     && str_contains($calendar->GetIPSViewHTML(), '"animationEnabled":false')

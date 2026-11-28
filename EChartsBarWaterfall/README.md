@@ -6,7 +6,7 @@ eindeutige numerische Symcon-Variablen mit derselben effektiven Einheit.
 Die erste Quelle ist der Startwert; bis zu 99 weitere Quellen sind standardmäßig Änderungen.
 Die berechnete Endsumme ist keine zusätzliche Quellvariable.
 
-Installation: Im **Symcon-Modulstore** nach **SymconECharts** suchen.
+Installation: Im **Symcon-Modulstore** nach **eCharts** suchen.
 [Voraussetzungen und Einrichtung](../README.md#installation-und-erstes-diagramm)
 (IP-Symcon 9.0/9.1, PHP 8.5, gemeinsames Gateway).
 Alle technischen Felder, Standardwerte und Quellenparameter stehen in der
@@ -55,6 +55,8 @@ die vorhandene Summenfarbe. Dafür müssen Sie keine Designs neu einrichten.
 Kachel, IPSView und beide Vorschauen verwenden dieselbe vollständige Rechnung.
 
 ## Große Bilanzen und Kategoriennavigation
+
+Mit **Reglerdicke (0 = automatisch)** im Kacheldesigner stellst Du die Dicke der Kategoriennavigation auf 1 bis 64 Pixel ein. 0 verwendet die bisherige Automatik (12 Pixel). Probiere auf dem Handy beispielsweise 32 Pixel. Im IPSView-Designer kannst Du bei eigenem Design einen anderen Wert wählen.
 
 Bei Platzmangel zeigt das Diagramm einen verschiebbaren Ausschnitt mit einer
 horizontalen Kategoriennavigation. Sichtbare Kategorien passen sich an die
@@ -160,8 +162,8 @@ In **IPSView-Design** ist **Kacheldesign verwenden** zunächst aktiv. Die
 unabhängigen Designfelder und **Kacheldesign nach IPSView kopieren und
 unabhängig bearbeiten** sind dabei deaktiviert. Deaktivieren Sie den Schalter,
 um eigene IPSView-Farben und Darstellungsoptionen zu wählen. Der Kopierknopf
-übernimmt das aktuell gespeicherte Kacheldesign einmalig und ersetzt dabei
-bereits gespeicherte unabhängige IPSView-Einstellungen. Quellen und aktuelle
+übernimmt die aktuellen Kachelfelder in den IPSView-Designer. Die Vorschau zeigt
+auch ungespeicherte Änderungen sofort. Mit **Übernehmen** speichern Sie das Design. Quellen und aktuelle
 Werte bleiben in beiden Ausgaben gleich.
 
 Die öffentliche Funktion `ECBW_GetWaterfallData($InstanzID)` liefert das
@@ -193,7 +195,7 @@ oder das Gateway. Alle aufgeführten Argumente beim Symcon-Aufruf übergeben.
 
 | Signatur | Rückgabe und Wirkung |
 | --- | --- |
-| `ECBW_CopyTileDesignToIPSView(int $InstanzID): void` | Kopiert das gespeicherte Kacheldesign, ersetzt die unabhängigen IPSView-Designwerte und wendet sie an; aktiviert unabhängiges Design. |
+| `ECBW_CopyTileDesignToIPSView(int $InstanzID): void` | Überträgt die gespeicherten Kachelwerte in den geöffneten IPSView-Formularentwurf. Erst **Übernehmen** speichert die Kopie. |
 | `ECBW_GetWaterfallData(int $InstanzID): string` | Liest das reguläre konfigurierte Diagrammmodell als JSON; keine Änderung von Quellen oder Archivwerten. |
 | `ECBW_GetIPSViewHTML(int $InstanzID): string` | Vollständiges HTML-Dokument für IPSView; der Rückgabewert bestätigt keine Anzeige in einem Client. |
 

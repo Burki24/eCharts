@@ -1,6 +1,9 @@
 {
     "translations": {
         "de": {
+            "Show period selection": "Zeitraumauswahl anzeigen",
+            "Chart background": "Diagrammhintergrund",
+            "Select a valid chart background color.": "Bitte eine gültige Farbe für den Diagrammhintergrund wählen.",
             "Fixed historical period": "Fester historischer Zeitraum",
             "From (inclusive)": "Von (einschließlich)",
             "Until (exclusive)": "Bis (ausschließlich)",
@@ -106,6 +109,7 @@
             "Band color (optional)": "Bandfarbe (optional)",
             "Automatic (theme)": "Automatisch (Theme)",
             "Time range": "Zeitraum",
+            "Custom": "Benutzerdefiniert",
             "Custom duration": "Benutzerdefinierte Dauer",
             "Duration": "Dauer",
             "Duration unit": "Zeiteinheit",

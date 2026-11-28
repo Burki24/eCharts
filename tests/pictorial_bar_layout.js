@@ -271,7 +271,7 @@ assert.equal(invalidIcon.errorElement.hidden,false);
 assert.equal(invalidIcon.errorElement.textContent,'The selected Symcon icon is unavailable or unsupported.');
 const {execFileSync}=require('node:child_process');
 const svgGeometry=JSON.parse(execFileSync('php',['-r',
-    'require "EChartsPictorialBar/PictorialBarSvg.php";echo json_encode(SymconECharts\\PictorialBarSvg::Import(file_get_contents($argv[1])));',
+    'require "EChartsPictorialBar/PictorialBarSvg.php";echo json_encode(eCharts\\PictorialBarSvg::Import(file_get_contents($argv[1])));',
     'tests/fixtures/pictorial-symbol-custom.svg'],{cwd:root,encoding:'utf8'}));
 const svgStyle={...iconStyle,symbol:'svg',symbolPath:svgGeometry.path,symbolWidth:svgGeometry.width,symbolHeight:svgGeometry.height,
     symbolMinimumX:svgGeometry.minimumX,symbolMinimumY:svgGeometry.minimumY};
@@ -368,6 +368,14 @@ for (const count of [72,100]) {
         style:{...model.pictorialBar.style,...(symbol==='icon'?iconStyle:symbol==='svg'?svgStyle:{}),
             symbol,orientation,colorMode:'gradient',animationEnabled:false}}};
     const result=render(many,mode,true,620);
+    const size = mode === 'ipsview' ? 44 : 32;
+    const thumb = orientation === 'horizontal' ? 'width' : 'height';
+    const margin = orientation === 'horizontal' ? 'right' : 'bottom';
+    const mobile = render({...many, pictorialBar: {...many.pictorialBar,
+        style: {...many.pictorialBar.style, zoomSliderSize: size}}}, mode, true, 620).option;
+    assert.equal(result.option.dataZoom[0][thumb], 12);
+    assert.equal(mobile.dataZoom[0][thumb], size);
+    assert.equal(mobile.grid[margin] - result.option.grid[margin], size - 12);
     assert.equal(result.option.series[0].data.length,count);
     assert.equal(result.option.dataZoom[0].id,'category-scroll');
     const windowSize=result.option.dataZoom[0].endValue+1;

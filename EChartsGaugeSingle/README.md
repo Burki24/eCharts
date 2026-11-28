@@ -1,12 +1,12 @@
 # EChartsGaugeSingle
 
-Gerätemodul der SymconECharts-Library für ein Gauge-Diagramm mit genau einer
+Gerätemodul der eCharts-Library für ein Gauge-Diagramm mit genau einer
 numerischen Quellvariable. Eine Gauge-Single-Instanz stellt die native
 Symcon-Kacheldarstellung und optional ein separat platzierbares WebContent-
 Widget für IPSView bereit. Datenquelle und fachliche Diagrammkonfiguration
 werden dabei nur einmal gepflegt.
 
-Installation: Im **Symcon-Modulstore** nach **SymconECharts** suchen.
+Installation: Im **Symcon-Modulstore** nach **eCharts** suchen.
 [Voraussetzungen und Einrichtung](../README.md#installation-und-erstes-diagramm)
 (IP-Symcon 9.0/9.1, PHP 8.5, gemeinsames Gateway).
 Alle technischen Felder, Standardwerte und Quellenparameter stehen in der
@@ -95,6 +95,9 @@ eine `viewBox` und reine Pfadgeometrie aus bis zu 32 `path`-Elementen. Das
 SVG darf höchstens 128 KiB groß sein; Transformationen, Skripte, Ereignisse,
 externe Referenzen und andere Elemente werden nicht übernommen. An ECharts
 wird niemals das SVG-Dokument, sondern nur der validierte Pfad übergeben.
+Jedes `path`-Element hat seinen eigenen Ursprung. Du kannst daher auch
+mehrteilige Zeiger mit relativen Pfaden direkt aus dem Grafikprogramm übernehmen.
+Eine UTF-8-Markierung (BOM) und Exportkommentare dürfen in der Datei bleiben.
 Eine eng an der Pfadgeometrie liegende `viewBox` erhält bei `100 %`
 Zeigerstärke die ursprünglichen Proportionen; die Spitze zeigt im SVG nach
 oben. Optional legt
@@ -180,17 +183,17 @@ Erforderlich sind **Symcon 9.0 oder 9.1 und PHP 8.5**. Eine Kompatibilität zu
 Erforderlich sind eine Verbindung zu einer aktiven
 [EChartsGateway-Instanz](../EChartsGateway) und eine vorhandene Integer- oder
 Float-Variable als Datenquelle. Ein reines Momentanwert-Widget benötigt keine
-Historie. Für die Bereinigung eigener SVG-Hintergründe wird die PHP-DOM-
+Historie. Für den Import eigener SVG-Zeiger, -Naben und -Hintergründe wird die PHP-DOM-
 Erweiterung benötigt. IPSView wird nur für den zusätzlichen
 IPSView-Ausgabeweg benötigt, nicht für native Kacheln.
 
 ## 3. Software-Installation
 
 Das Gauge-Modul wird gemeinsam mit EChartsGateway über die Library
-**SymconECharts** eingebunden. Es gibt kein separat zu installierendes
+**eCharts** eingebunden. Es gibt kein separat zu installierendes
 Gerätepaket.
 
-Im **Symcon-Modulstore** nach **SymconECharts** suchen und die Library
+Im **Symcon-Modulstore** nach **eCharts** suchen und die Library
 installieren. Sie enthält das Gateway und alle Diagrammmodule.
 
 ## 4. Einrichten der Instanzen in Symcon
@@ -357,13 +360,12 @@ Damit folgt das Widget jeder späteren Änderung am Kacheldesigner; die
 eigenen Designfelder und der Kopierknopf im Abschnitt **IPSView-Design** sind
 dann deaktiviert. Für eine andere Optik zuerst
 **Kacheldesign verwenden** ausschalten. Danach ist **Kacheldesign nach IPSView
-kopieren und unabhängig bearbeiten** sofort nutzbar: Die Aktion übernimmt das
-gespeicherte Kacheldesign einmalig und überschreibt bisherige unabhängige
-IPSView-Designwerte. Danach stehen
+kopieren und unabhängig bearbeiten** sofort nutzbar. Die IPSView-Vorschau zeigt
+auch die noch ungespeicherten Kachelwerte. Im Formular stehen
 Preset, Theme, Zeiger, Nabe, Platte, Skala, Farben, SVGs und Feinabstimmung
 unabhängig zur Verfügung. Datenquelle, Titeltext, Wertebereich, Einheit und
 Nachkommastellen bleiben bewusst gemeinsame fachliche Einstellungen.
-Änderungen am Kacheldesigner vor dem Kopieren speichern.
+Mit **Übernehmen** speicherst Du das bearbeitete Design.
 
 ### Gemeinsame Darstellung
 
@@ -435,7 +437,7 @@ oder das Gateway. Alle aufgeführten Argumente beim Symcon-Aufruf übergeben.
 
 | Signatur | Rückgabe und Wirkung |
 | --- | --- |
-| `ECGS_CopyTileDesignToIPSView(int $InstanzID): void` | Kopiert das gespeicherte Kacheldesign, ersetzt die unabhängigen IPSView-Designwerte und wendet sie an; aktiviert unabhängiges Design. |
+| `ECGS_CopyTileDesignToIPSView(int $InstanzID): void` | Überträgt die gespeicherten Kachelwerte in den geöffneten IPSView-Formularentwurf. Erst **Übernehmen** speichert die Kopie. |
 | `ECGS_GetGaugeData(int $InstanzID): string` | Liest das reguläre konfigurierte Diagrammmodell als JSON; keine Änderung von Quellen oder Archivwerten. |
 | `ECGS_GetIPSViewHTML(int $InstanzID): string` | Vollständiges HTML-Dokument für IPSView; der Rückgabewert bestätigt keine Anzeige in einem Client. |
 | `ECGS_GetJSLiveImportHTML(int $InstanzID, bool $IPSView): string` | `$IPSView=false`: Kachelausgabe; `true`: IPSView-Ausgabe eines übernommenen JSLive-Modells als vollständiges HTML. |

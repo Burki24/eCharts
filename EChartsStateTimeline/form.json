@@ -287,6 +287,19 @@
                             "caption": "Enable zoom"
                         },
                         {
+                            "type": "NumberSpinner",
+                            "name": "ZoomSliderSize",
+                            "caption": "Slider thickness (0 = automatic)",
+                            "minimum": 0,
+                            "maximum": 64,
+                            "suffix": "px"
+                        },
+                        {
+                            "type": "CheckBox",
+                            "name": "EnablePeriodSelection",
+                            "caption": "Show period selection"
+                        },
+                        {
                             "type": "CheckBox",
                             "name": "ShowTooltip",
                             "caption": "Show tooltip"

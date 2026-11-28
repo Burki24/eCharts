@@ -3,7 +3,7 @@
 Vergleicht die Verteilung archivierter Messwerte in einer nativen Symcon-Kachel
 und optional als eigenes IPSView-WebContent-Widget.
 
-Installation: Im **Symcon-Modulstore** nach **SymconECharts** suchen.
+Installation: Im **Symcon-Modulstore** nach **eCharts** suchen.
 [Voraussetzungen und Einrichtung](../README.md#installation-und-erstes-diagramm)
 (IP-Symcon 9.0/9.1, PHP 8.5, gemeinsames Gateway).
 Alle technischen Felder, Standardwerte und Quellenparameter stehen in der
@@ -67,8 +67,7 @@ Seltene Zeitzonenwechsel mit einer nicht ganzstündigen Verschiebung, etwa
 abgewiesen. Zeiträume davor oder danach sowie die üblichen ganzstündigen
 Sommer-/Winterzeitwechsel bleiben unterstützt.
 
-Kachel und IPSView verwenden denselben festen Zeitraum; ihre Designs bleiben
-unabhängig. Die Formularvorschau zeigt die gewählten Grenzen samt UTC-Offset
+Kachel und IPSView starten mit denselben festen Zeitgrenzen. Die Formularvorschau zeigt die gewählten Grenzen samt UTC-Offset
 und Zeitzone, aber weiterhin ausdrücklich Beispieldaten. Ungültige Datumsentwürfe
 werden in der Vorschau erklärt, ohne Archive zu lesen. Die bisherigen
 Voreinstellungen und rollierenden benutzerdefinierten Zeiträume bleiben erhalten.
@@ -122,6 +121,8 @@ Achsenbeschriftung sowie Schriftgrößen und Farben für Titel und Achsen.
 Die maximale Boxbreite wird auf schmalen Flächen automatisch begrenzt.
 Lange Kategorienamen werden bei Platzmangel gekürzt; im Tooltip bleiben sie vollständig.
 
+Mit **Reglerdicke (0 = automatisch)** im Kacheldesigner stellst Du die Dicke der Kategoriennavigation auf 1 bis 64 Pixel ein. 0 verwendet die bisherige Automatik (12 Pixel). Probiere auf dem Handy beispielsweise 32 Pixel. Im IPSView-Designer kannst Du bei eigenem Design einen anderen Wert wählen.
+
 Bei vielen Kategorien erscheint automatisch eine Navigation per Schieberegler
 oder Mausrad. Das gilt horizontal und vertikal. Boxbreite und Schriftgröße
 bestimmen, wie viele Kategorien gleichzeitig lesbar sind. Der Ausschnitt bleibt
@@ -164,6 +165,16 @@ für beide Ausgaben gemeinsam. Optional kann der IPSView-Hintergrund durchschein
 Der Diagrammtitel steht unter dem Symcon-Kachelkopf. Eine Änderung der
 Gestaltung verändert weder Variablenwerte noch Archivdaten.
 
+## Zeitraum im Diagramm wechseln
+
+Aktiviere im **Kacheldesigner** die Option **Zeitraumauswahl anzeigen**. In der
+geöffneten Ansicht kannst du dann zwischen den letzten 24 Stunden, 7 Tagen und
+30 Tagen wechseln. Mit der Standardauswahl kehrst du zum konfigurierten
+Zeitraum zurück, auch bei einem festen historischen Von-/Bis-Zeitraum.
+IPSView übernimmt die Einstellung aus der Kachel oder verwendet dieselbe Option
+im eigenen Designer. Jede Ansicht lädt ihre Archivwerte mit den bisherigen
+Lesegrenzen. Andere geöffnete Ansichten behalten ihre Auswahl.
+
 ## Konfigurationsreferenz und Skriptzugriff
 
 Die [Feldreferenz](../docs/KONFIGURATION.md#echartsboxplot) enthält
@@ -189,7 +200,7 @@ oder das Gateway. Alle aufgeführten Argumente beim Symcon-Aufruf übergeben.
 
 | Signatur | Rückgabe und Wirkung |
 | --- | --- |
-| `ECBX_CopyTileDesignToIPSView(int $InstanzID): void` | Kopiert das gespeicherte Kacheldesign, ersetzt die unabhängigen IPSView-Designwerte und wendet sie an; aktiviert unabhängiges Design. |
+| `ECBX_CopyTileDesignToIPSView(int $InstanzID): void` | Überträgt die gespeicherten Kachelwerte in den geöffneten IPSView-Formularentwurf. Erst **Übernehmen** speichert die Kopie. |
 | `ECBX_GetBoxplotData(int $InstanzID): string` | Liest das reguläre konfigurierte Diagrammmodell als JSON; keine Änderung von Quellen oder Archivwerten. |
 | `ECBX_GetBoxplotDiagnostic(int $InstanzID): string` | JSON-Momentaufnahme der Konfigurationsprüfung und letzten Fehlermeldung; kein Nachweis einer erfolgreichen Datenabfrage. |
 | `ECBX_GetIPSViewHTML(int $InstanzID): string` | Vollständiges HTML-Dokument für IPSView; der Rückgabewert bestätigt keine Anzeige in einem Client. |

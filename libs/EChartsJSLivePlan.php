@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace SymconECharts;
+namespace eCharts;
 
 use Closure;
 use InvalidArgumentException;
@@ -35,7 +35,7 @@ final class EChartsJSLivePlan
         $package = EChartsJSLivePackage::Read($json);
         $preflight = EChartsJSLiveImport::Analyze($json, $mapping, $source, $installationID);
         $modules = self::Modules();
-        $plan = ['format'      => 'de.burki24.symconecharts.import-plan', 'formatVersion' => '1.0', 'ruleVersion' => self::RULE_VERSION,
+        $plan = ['format'      => 'de.burki24.echarts.import-plan', 'formatVersion' => '1.0', 'ruleVersion' => self::RULE_VERSION,
             'packageHash'      => $preflight['packageHash'], 'mapping' => $mapping, 'context' => $context,
             'sameInstallation' => $preflight['sameInstallation'], 'charts' => [], 'creationEnabled' => true,
             'sourceGuard'      => [], 'originGuard' => [], 'ruleFingerprint' => self::RuleFingerprint(), 'issues' => $preflight['issues']];
@@ -56,6 +56,10 @@ final class EChartsJSLivePlan
                 'issues'       => [], 'fieldCoverage' => $pre['fieldCoverage'], 'metadataCoverage' => $pre['metadataCoverage'], 'verdicts' => $pre['verdicts'],
                 'reference'    => ['exportId' => $package->exportId, 'createdAt' => $package->createdAt,
                     'window'                  => $chart->time->resolvedWindow ?? null, 'output' => 'Native ECharts; no source template is executed.']];
+            $row['presentationComparisons'] = array_map(static fn (array $source): array => [
+                'sourceKey'  => $source['sourceKey'],
+                'comparison' => $source['presentationComparison'] ?? ['status' => 'unverified', 'normalizations' => []]
+            ], $pre['sources']);
             try {
                 if ($plan['issues'] !== []) {
                     throw new InvalidArgumentException('FORMAT_UNSUPPORTED: unresolved package extensions.');

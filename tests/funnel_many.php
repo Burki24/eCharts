@@ -171,7 +171,7 @@ require_once dirname(__DIR__) . '/EChartsFunnel/module.php';
                 && $polygons->item(0)->getAttribute('data-source-id') === 'variable-98731'
                 && $polygons->item(0)->getAttribute('data-stage') === '31'
                 && (float) $polygons->item(0)->getAttribute('data-value') === 100.0, 'A selected late stage must survive sampling, retaining full source order, original value and hidden maximum.');
-            $palette = SymconECharts\EChartsBarPreview::Palette('auto');
+            $palette = eCharts\EChartsBarPreview::Palette('auto');
             assertGatewayGauge($polygons->item(0)->getAttribute('fill') === $palette['seriesColors'][31 % count($palette['seriesColors'])], 'A late-only selected stage must retain its original full-model palette color.');
             $points = preg_split('/\s+/', trim($polygons->item(0)->getAttribute('points')));
             $left = array_map('floatval', explode(',', $points[0]));
@@ -283,7 +283,7 @@ require_once dirname(__DIR__) . '/EChartsFunnel/module.php';
             assertGatewayGauge($state['status'] === 'error' && $state['chart'] === null && $state['error'] === $sizeError, 'Oversized Funnel models must return bounded actionable errors in both adapters.');
         }
         foreach (range(98700, 98731) as $id) {
-            $GLOBALS['symconTestVariables'][$id]['Presentation']['SUFFIX'] = str_repeat('<', 2800);
+            $GLOBALS['symconTestVariables'][$id]['Presentation']['SUFFIX'] = str_repeat('<', 5400);
         }
         $escaped = $configure($rows);
         $escapedProperties = $escaped->GetTestProperties();

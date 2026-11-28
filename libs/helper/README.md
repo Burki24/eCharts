@@ -5,17 +5,17 @@ Die Dateien in diesem Verzeichnis stammen aus dem gemeinsamen Repository
 
 | Datei | Upstream-Version | SHA-256 |
 | --- | --- | --- |
-| `ConfigurationFormHelper.php` | 1.0.1 | `bd45f15a1c2f6e2800eff51eefeb3094f5745a3469434d6a57b98d54f30d363f` |
-| `DataFlowHelper.php` | 1.0.0 | `4c25828b283367692d0db1631d2b7d71ba6012883798bc5ffddb8f2d551d6dfb` |
+| `ConfigurationFormHelper.php` | 1.0.3 | `532c26b557dff545b1a7ea3a845729a932fb65321d62d6276374a33de959deba` |
+| `DataFlowHelper.php` | 1.0.2 | `95784922e6b11f95ab3fe6e6d934f46234092b79e8fea11236963845cce2d4e6` |
 | `DebugFlowHelper.php` | 1.1.0 | `ee763d210b8883c5e8a483e51f6a87e9cefeee73a89f6ef7bc7b4cfd61e28005` |
-| `DebugHelper.php` | 1.0.3 | `b58cd75c9c2c01fc0a6e2610b3f41d817e9799400f08179d380eaa81791864e3` |
-| `IPSViewHTMLPageHelper.php` | 1.5.5 | `83b049678e9901514101e74c9e2d9a247adac0b05d1ed5e0c3f368e6be5e9d05` |
-| `HelperTranslationHelper.php` | 1.0.0 | `d3deee581eca9f8eb11e9adce060170227a2dc836ee898bd134f93d27604f639` |
-| `VisualizationAssetHelper.php` | 1.1.1 | `5df251b5ceb7a9867f2330de6b0476b0c11f1762aeda7c03f08d3ad66f4433d6` |
-| `ResponsiveVisualizationHelper.php` | 1.0.2 | `158d643156820c7c1e6979d4b28099b6b0e2f71eafbd8c6a7feb717200b6c700` |
+| `DebugHelper.php` | 1.0.5 | `a3db963c500a56d7daaa6cab71fe51f236d9859c93cb75cc9100e9f47dc93d04` |
+| `IPSViewHTMLPageHelper.php` | 1.5.6 | `c5ac1aeaefa3b909ab3bfa07316322e9b3676dfb08a4e3a9adab63e495ba9c6b` |
+| `HelperTranslationHelper.php` | 1.0.2 | `7c0184b51923e3f4f78fb150d403ea092b0117b0b01fb5c04fdc4568b269ebdd` |
+| `VisualizationAssetHelper.php` | 1.1.4 | `28d2dbdb7c86c45986b78ba391c260510d4f1c6427481298a00cc775983cee47` |
+| `ResponsiveVisualizationHelper.php` | 1.0.4 | `66fd166b804f255e24be1f5bda0b852228f3cc1e6c45c56729b8a55385a20224` |
 | `SVGPreviewHelper.php` | 1.0.0 | `14313a55020df27931e1ffe071fa599a39152493c6305ab2ef5322922981817b` |
-| `VariablePresentationNormalizationHelper.php` | 1.0.2 | `5ce425a8a54872ea2c0ecd4d065a540300ef6a6d6b5e97627e25b075b8d3c0fd` |
+| `VariablePresentationNormalizationHelper.php` | 1.0.4 | `3f3e3043ed79b469cd7da0f81e464d097e5d526e96b0c04f8740198f653b09a2` |
 | `VariableSearchHelper.php` | 1.0.0 | `f7f18b03a320578ecb2ffd816879df2e280e0d96c18cac27320198c73b564f22` |
-| `VisualizationThemeHelper.php` | 1.1.0 | `29fe61a7eccafeb8b2beb77fe3f7a4896f43b3eaace9ebe428a4fc8250fd9088` |
+| `VisualizationThemeHelper.php` | 1.1.2 | `ffd5ba38a26191fd40c5900f8338ae520fa12904474493712eac7975304f4672` |
 
 Die Kopien werden bewusst mit der Library ausgeliefert; zur Laufzeit besteht keine externe Abhängigkeit.

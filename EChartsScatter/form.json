@@ -269,6 +269,10 @@
                             "value": "current-month"
                         },
                         {
+                            "caption": "This year",
+                            "value": "current-year"
+                        },
+                        {
                             "caption": "Custom",
                             "value": "custom"
                         }
@@ -427,6 +431,19 @@
                             "type": "CheckBox",
                             "name": "EnableZoom",
                             "caption": "Enable X/Y zoom"
+                        },
+                        {
+                            "type": "CheckBox",
+                            "name": "EnablePeriodSelection",
+                            "caption": "Show period selection"
+                        },
+                        {
+                            "type": "NumberSpinner",
+                            "name": "ZoomSliderSize",
+                            "caption": "Slider thickness (0 = automatic)",
+                            "minimum": 0,
+                            "maximum": 64,
+                            "suffix": "px"
                         },
                         {
                             "type": "CheckBox",
@@ -733,6 +750,13 @@
                             "type": "SelectColor",
                             "name": "AxisColor",
                             "caption": "Axis color",
+                            "allowTransparent": true,
+                            "transparentCaption": "Automatic (theme)"
+                        },
+                        {
+                            "type": "SelectColor",
+                            "name": "LegendColor",
+                            "caption": "Legend color",
                             "allowTransparent": true,
                             "transparentCaption": "Automatic (theme)"
                         },

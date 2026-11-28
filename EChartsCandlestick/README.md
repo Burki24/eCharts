@@ -4,7 +4,7 @@ Candlestick zeigt die Entwicklung einer numerischen Standard-Archivvariable
 als Kerzen in einer Symcon-Kachel und optional als IPSView-HTML-Widget.
 Es verwendet das gemeinsame EChartsGateway.
 
-Installation: Im **Symcon-Modulstore** nach **SymconECharts** suchen.
+Installation: Im **Symcon-Modulstore** nach **eCharts** suchen.
 [Voraussetzungen und Einrichtung](../README.md#installation-und-erstes-diagramm)
 (IP-Symcon 9.0/9.1, PHP 8.5, gemeinsames Gateway).
 Alle technischen Felder, Standardwerte und Quellenparameter stehen in der
@@ -101,7 +101,7 @@ enthalten. Ebenso kann eine eigene Dauer von einer Woche (168 Stunden) eine
 vollständige 169-Stunden-Kalenderwoche beim Herbstwechsel nicht enthalten.
 Die festen Wochenvorgaben zählen lokale Daten und erhalten die ganze Vorwoche.
 Ein leerer Zeitraum löst keine Archivabfrage aus. Kachel und IPSView
-verwenden dieselbe Zeitkonfiguration; Designänderungen verändern sie nicht.
+starten mit der Zeitkonfiguration der Instanz.
 
 „Fester historischer Zeitraum“ ergänzt eine Von-/Bis-Auswahl in der angezeigten
 Symcon-Zeitzone. Der Beginn ist eingeschlossen, das Ende ausgeschlossen und darf
@@ -164,6 +164,10 @@ Die Werteachse kann den Nullpunkt einschließen, ohne Messwerte zu ändern.
 und auf Touchgeräten mit zwei Fingern gezoomt werden. Bei horizontalen Kerzen
 steht der Regler rechts, sonst unten. Beide Designer können die Option
 unabhängig verwenden; standardmäßig ist sie ausgeschaltet.
+Mit **Reglerdicke (0 = automatisch)** lässt sich die Höhe des unteren Reglers
+bzw. die Breite des rechten Reglers auf 1 bis 64 Pixel einstellen. Auf dem
+Handy kannst Du beispielsweise 32 Pixel ausprobieren. Die Einstellung gilt
+auch für den gemeinsamen Zeitregler der Vergleichspanels.
 
 Der Zoom ist ausschließlich eine flüchtige Ansicht der bereits geladenen
 Intervalle. Die vollständigen Kerzen bestimmen weiterhin die Werteskala;
@@ -184,6 +188,17 @@ in der echten Kachel beziehungsweise in IPSView geprüft, nicht im statischen SV
 IPSView erzeugt bei aktivierter Ausgabe eine WebContent-Variable
 „Candlestick für IPSView“. Der Diagrammtitel erscheint in der Kachel
 unterhalb des Kachelnamens und Vergrößerungsbuttons.
+
+## Zeitraum im Diagramm wechseln
+
+Aktiviere im **Kacheldesigner** die Option **Zeitraumauswahl anzeigen**. In der
+geöffneten Ansicht kannst du dann zwischen den letzten 24 Stunden, 7 Tagen und
+30 Tagen wechseln. Die Auswahl bietet nur Zeiträume an, die für das Kerzenintervall
+mindestens eine abgeschlossene Kerze und höchstens 720 Kerzen enthalten. Mit der Standardauswahl kehrst du zum konfigurierten
+Zeitraum zurück, auch bei einem festen historischen Von-/Bis-Zeitraum.
+IPSView übernimmt die Einstellung aus der Kachel oder verwendet dieselbe Option
+im eigenen Designer. Jede Ansicht lädt ihre Archivwerte mit den bisherigen
+Lesegrenzen. Andere geöffnete Ansichten behalten ihre Auswahl.
 
 ## Konfigurationsreferenz und Skriptzugriff
 
@@ -210,7 +225,7 @@ oder das Gateway. Alle aufgeführten Argumente beim Symcon-Aufruf übergeben.
 
 | Signatur | Rückgabe und Wirkung |
 | --- | --- |
-| `ECCA_CopyTileDesignToIPSView(int $InstanzID): void` | Kopiert das gespeicherte Kacheldesign, ersetzt die unabhängigen IPSView-Designwerte und wendet sie an; aktiviert unabhängiges Design. |
+| `ECCA_CopyTileDesignToIPSView(int $InstanzID): void` | Überträgt die gespeicherten Kachelwerte in den geöffneten IPSView-Formularentwurf. Erst **Übernehmen** speichert die Kopie. |
 | `ECCA_GetCandlestickData(int $InstanzID): string` | Liest das reguläre konfigurierte Diagrammmodell als JSON; keine Änderung von Quellen oder Archivwerten. |
 | `ECCA_GetCandlestickDiagnostic(int $InstanzID): string` | JSON-Momentaufnahme der Konfigurationsprüfung und letzten Fehlermeldung; kein Nachweis einer erfolgreichen Datenabfrage. |
 | `ECCA_GetIPSViewHTML(int $InstanzID): string` | Vollständiges HTML-Dokument für IPSView; der Rückgabewert bestätigt keine Anzeige in einem Client. |

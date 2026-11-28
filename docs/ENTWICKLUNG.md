@@ -1,4 +1,83 @@
-# Entwicklung von SymconECharts
+# Entwicklung von eCharts
+
+## JSON-Datenquelle für EChartsTree
+
+[ADR 0113](adr/0113-tree-json-data-source.md) und der kanonische
+[Tree-JSON-Vertrag 1.0](TREE_JSON_CONTRACT.md) legen eine zusätzliche Datenquelle
+im bestehenden Modul fest: Datei-/Textübernahme in ein gespeichertes Dokument,
+eine Stringvariable sowie lesende Prüfung und ausdrückliche Skriptübernahme.
+Schema und synthetisches Netzwerkbeispiel liegen beim Vertrag. `SourceMode`
+bleibt standardmäßig `objects`; Designer, zwölf Ebenen, 3000 Knoten, Vorschau-
+und Ausgabebudgets sowie die Objektbaum-/Health-Verträge bleiben erhalten.
+Gemeinsame Projektion, Renderer, Vorschau und vorhandene Helper werden genutzt.
+Die Implementierung liegt librarylokal in `EChartsTreeJSON` und
+`EChartsTreeJSONSource`. Der gemeinsame `TreeHierarchy::Project` wird auch vom
+gefilterten Objektbaum verwendet; TreeSystemHealth behält seinen Quellenvertrag.
+Die Prüfung tatsächlicher HTML-Ausgabegrößen nutzt read-only Transportoptionen,
+ohne nebenbei einen IPSView-Kanal zu persistieren. JSON-Ausgabestände besitzen
+einen Quellenkontext, damit der Browser keine fremde alte Quelle als
+Transportfehler-Fallback erhält.
+
+`php tests/tree_json.php` prüft Format, ganze Hierarchien, Grenzen und Bindungen.
+`php tests/gateway_gauges.php --tree-json` verwendet das echte Modul und echte
+Callbackscripts mit vollständigen Symcon-Argumenten. Geplante und aktive
+Properties bleiben im Kernel-Doppel getrennt; Lesemodus, identischer Wiederaufruf,
+Sperren, konkurrierende Entwürfe, Speicherfehler, reine Vorschauen, VM_UPDATE,
+letzter Stand und Wiederanlauf werden geprüft. Die bisherigen Tiefen-/Health-
+Prüfungen sowie `node tests/tree_layout.js` bleiben grün.
+
+Die MCP-Prüfung von 1.402 zeigte einen durch das Kernel-Doppel verdeckten SDK-
+Unterschied: `VariableExists` ist keine native Modulmethode. Der JSON-Adapter
+verwendet deshalb die vorhandene `IPSViewHTMLVariableID`-Auflösung des regulären
+Helpers. Das gemeinsame Kernel-Doppel enthält die zusätzliche Methode nicht
+mehr; der Tree-JSON-Test erzwingt ihre Abwesenheit und prüft fehlende, aktive
+sowie deaktiviert erhaltene IPSView-Ausgaben. Der vorherige Adapter scheitert
+damit bereits an der gültigen Vertragsdatei; die lokale Korrektur besteht.
+Die MCP-Nachprüfung unter 1.403 bestätigt den SDK-Fix sowie Datei/Text und
+Stringquelle einschließlich Fehler-/Erholungsverhalten. Der Setter scheiterte
+anschließend an der falschen Annahme, `IPS_GetConfiguration` lese vorgemerkte
+Werte. Beide öffentlichen Kernel-Getter liefern tatsächlich aktive Properties.
+Das Testdoppel trennt nun diese Getter von seinem expliziten `Planned`-Speicher.
+Die Korrektur folgt dem vorhandenen Importjournal-Muster: letzte Vorprüfung nach
+allen Quellenlesungen, Vormerken bei unverändertem Aktivstand, Anwenden und
+vollständiger Nachvergleich einschließlich `IPS_HasChanges`. Regressionen
+prüfen Erstübernahme, Wiederholung, späte fremde Entwürfe, Aktivierungsfehler,
+abweichend aktivierte Designs und neue Entwürfe nach dem Anwenden. Abweichungen
+führen zu Fehlern ohne automatischen Rollback fremder Zustände.
+Die erneute Setter-MCP-Abnahme unter 1.404 ist bestanden: Erstübernahme
+`applied`/`ready`, Wiederholung `unchanged`, ausstehende Änderungen bei gleichem
+und neuem Dokument `CONFIGURATION_PENDING`. Der fremde Entwurf blieb erhalten
+und ließ sich unverändert anwenden; eine zweite Dokumentübernahme sowie die
+Ablehnung ungültigen JSONs bestanden. Nur `JsonDocument` wurde bei gültigen
+Übernahmen geändert. Die temporären Testobjekte sind entfernt; alle 139
+bestehenden ECharts-Instanzen blieben hinsichtlich Konfiguration, Änderungsstatus,
+Verbindung und Objektidentität unverändert. Am 05.11.2026 bestätigt der Eigentümer
+die JSON-Datenquelle in Kachel und IPSView. Die funktionale Abnahme ist damit
+abgeschlossen; verbleibende Testlücken stehen im
+[Vertrag](TREE_JSON_CONTRACT.md#abnahmestand-und-verbleibende-testlücken).
+
+Der optionale Befehl `node tests/tree_json_browser.mjs <Chromium-Pfad>` startet
+nur eine anonyme lokale Fixture und ein isoliertes Browserprofil. Echte Browser-
+Mausradereignisse sind in beiden Ausgabe-Layouts als trusted empfangen;
+Zoom wechselt 1 → 1,1 → 1, ohne das äußere Dokument zu scrollen. Sichtbarer
+veralteter Stand, Quellenwechsel und fehlende JavaScript-Ausnahmen sind geprüft.
+Dies ist keine native Symcon-/IPSView-App-Abnahme. Die normale Browsersteuerung
+konnte wegen eines lokalen Kernel-Assetfehlers nicht starten; der Chromium-
+Nachweis ist eine getrennte CLI-Prüfung. Die spätere MCP-Prüfung und die
+Eigentümerbestätigung der tatsächlichen Kachel-/IPSView-Ausgabe sind die oben
+gesondert dokumentierten Nachweise. Sie bestätigen keine vollständige
+Geräte-, Last- oder Fehlerszenarienmatrix.
+
+## Semantische JSLive-Quellenzuordnung
+
+ADR 0112 ergänzt die migrationsbezogene, zentrale Policy
+`libs/EChartsJSLivePresentation.php`. Die gemeinsame Profilnormalisierung bleibt
+unverändert. `php tests/jslive_presentation_equivalence.php` reproduziert die
+bisherige Sperre fremder Quellen durch bekannte Standardfelder und exakt gleiche
+Zahlentypen. Der Test prüft vollständige Pläne, erhaltene Originalformatierung,
+unveränderte aktuelle Quell-Fingerabdrücke und blockierende echte Unterschiede.
+Die neue Policy benötigt nach dem Modulupdate eine eigene Live-Abnahme; die
+bereits bestandene OPcache- und Radar-Strichmuster-Abnahme bleibt erhalten.
 
 ## Validierte Progressbar-Farben und SVG-Füllbilder
 
@@ -114,8 +193,10 @@ persistierte Einstellungen; die unabhängigen Quellreferenzen bleiben gleich.
 Die Observer-Meldung tritt auch an einer reinen Symcon-Zahlenkachel auf und ist
 weiterhin kein nachgewiesener Chartfehler.
 Die vereinbarte technische Migrationsabnahme einschließlich J01 ist unter 1.386
-abgeschlossen. Release-Commit, dessen CI/Metadaten, Termin und Store-Einreichung
-bleiben gesonderte Eigentümerschritte gemäß den [Beta-Unterlagen](BETA_STORE.md).
+abgeschlossen. Die erste öffentliche Beta ist seit 03.11.2026 im Modulstore
+verfügbar. Nachfolgende Beta-Stände und ihre CI-/Metadatennachweise sind von
+dieser Erstveröffentlichung getrennt zu betrachten; siehe
+[Beta-Unterlagen](BETA_STORE.md).
 Die bereits abgeschlossene
 Nutzungsgrenzen-Roadmap und die Eigentümerabnahmen bestehender Modelle bleiben gültig.
 
@@ -137,8 +218,9 @@ Der gemeinsame Gateway-Hook wird gemäß [ADR 0107](adr/0107-shared-gateway-hook
 koordiniert und routet zum tatsächlichen Datenflussparent. Peer-Aufrufe erfolgen
 nur bei aktiven Schnittstellen, damit ein Bibliotheksreload keine noch nicht
 verfügbaren Modulinterfaces anspricht. Die gemeinsame Beta-Abnahme steht im
-[Bericht vom 28.10.2026](BETA_ABNAHME-2026-10-28.md), die vorbereiteten deutschen
-Store-Texte und verbleibenden Eigentümerschritte unter [Beta-Store](BETA_STORE.md).
+[Bericht vom 28.10.2026](BETA_ABNAHME-2026-10-28.md), der aktuelle
+Veröffentlichungsstand, deutsche Store-Texte und verbleibende Testlücken unter
+[Beta-Store](BETA_STORE.md).
 
 Heatmap ergänzt gemäß [ADR 0106](adr/0106-heatmap-comparison-views.md) optionale
 1–4-Vergleichsansichten. Ein familienlokaler Plan kombiniert die bestehende
@@ -163,7 +245,7 @@ Echte Touchgeräte bleiben ungeprüft.
 ## Ziel und Abgrenzung
 
 Symcon-Variablen und Archivdaten sollen ohne eigene JavaScript-Programmierung
-als Messinstrumente und Diagramme dargestellt werden können. SymconECharts
+als Messinstrumente und Diagramme dargestellt werden können. eCharts
 entsteht unabhängig von JSLive; bestehende JSLive-Installationen werden nicht
 verändert und JSLive ist keine Voraussetzung.
 
@@ -438,7 +520,7 @@ ihre Ladelimits und bisherigen Range-Felder; neue effektive Budgetfelder sind
 additiv für größere Listen. Zu große Antworten werden vor dem Join abgewiesen.
 Alle Achsen und Zeilen bleiben in der nativen Parallel-Koordinate. Ein echter
 horizontaler DOM-Viewport statt Dimensionsauswahl verwendet die bestehende
-`SymconEChartsCategoryNavigation` für ID-stabile Anker. Titelupdates beim Scrollen
+`eChartsCategoryNavigation` für ID-stabile Anker. Titelupdates beim Scrollen
 ersetzen nur die Titelposition; native Achsenmarkierungen und Skalen bleiben
 erhalten. Reine SVG-Entwurfsvorschauen kennzeichnen ihren Sechs-Achsen-Ausschnitt.
 Die 16-Achsen-Ansicht wurde funktional per MCP auf Symcon 9.1 mit temporärer
@@ -653,8 +735,10 @@ Original-Farbindizes und gekennzeichneten Gesamtzahlen ohne Archivzugriff.
 EChartsBarHistory erweitert gemäß
 [ADR 0068](adr/0068-historical-bar-series-selection.md) auf 32 Quellen und
 200–32000 Gesamtpunkte, behält aber Default 1000, 2000 je Abfrage/Reihe und
-bis zu 16 effektive Einheitengruppen. Archivzeitstempel werden nicht
-ausgerichtet oder ergänzt. Die gemeinsame ID-stabile Auswahllogik von
+bis zu 16 Wertachsen. Das Modell erhält die Archivzeitstempel.
+Bei optionalen Stapelgruppen verwendet die Darstellung nur gemeinsame
+Intervallzeitstempel gemäß [ADR 0114](adr/0114-bar-history-stack-groups.md).
+Die gemeinsame ID-stabile Auswahllogik von
 TimeSeries und BarHistory liegt in `echarts-series-selection.js`, eingebettet
 über `EChartsAsset::SeriesSelectionJavaScript()`. Native Auswahl und
 Legendenanker bleiben flüchtig; Zeitzoom nutzt weiter `echarts-zoom.js`.
@@ -667,7 +751,17 @@ werden nicht in den Auswahlbaustein verschoben.
 EChartsTimeSeries unterstützt gemäß
 [ADR 0067](adr/0067-timeseries-more-series-and-selection.md) 32 Quellen und
 200–32000 Gesamtpunkte bei unverändertem Default 2000 und höchstens 2000 je
-Gateway-Anfrage/Reihe. Acht effektive Einheitengruppen bleiben die Grenze.
+Gateway-Anfrage/Reihe. Acht Wertachsen bleiben die Grenze. Beide Familien
+verwenden die gemeinsame Achsenzuordnung aus
+[ADR 0116](adr/0116-individual-archive-value-axes.md). Einzelne Reihen können
+auch bei gleicher Einheit eine eigene Skala und Seite erhalten.
+Die optionale Zeitraumauswahl verwendet den lesenden Zustandsabruf des Gateways.
+Anfrage, Abgrenzung zum Zoom und Aktualisierung pro geöffnetem Dokument sind in
+[ADR 0117](adr/0117-view-local-archive-periods.md) beschrieben.
+Optionale Flächenstapel verwenden dieselben Gruppen- und Einheitenregeln wie
+BarHistory. Die Zeitreihe unterbricht auch die Verbindung über ein Intervall,
+für das sämtliche Gruppenquellen fehlen, siehe
+[ADR 0115](adr/0115-timeseries-stacked-areas.md).
 ID-stabile Reihenauswahl ist flüchtiger Rendererzustand, keine serverseitige
 Quellenfilterung. Versteckte Reihen bleiben abonniert und im Archivbudget.
 Das Modell ist auf 900000 JSON-Bytes begrenzt; ein zusätzlicher HTML-Guard
@@ -796,8 +890,15 @@ das Grunddesign einschließlich SVG-Zeiger, SVG-Nabe und SVG-Zifferblatt
 Alle Gauge-Module erzeugen optional
 eine IPSView-WebContent-Variable mit vererbtem oder unabhängigem Design auf
 demselben Renderer. Die gemeinsame ECharts-Hintergrundlogik unter
-`libs/EChartsIPSViewBackground.php` steuert für Gauge und TimeSeries das
-Durchscheinen des IPSView-Hintergrunds sowie optionale Farbe und Deckkraft.
+`libs/EChartsIPSViewBackground.php` steuert das Durchscheinen des
+IPSView-Hintergrunds sowie die Tönung und Deckkraft. Alle 29 regulären
+Designer verwenden `ChartBackgroundColor` und `IPSViewChartBackgroundColor`
+für den deckenden Diagrammhintergrund. `-1` übernimmt die Theme-Farbe,
+`0` ist Schwarz. Die Designvererbung gilt auch für dieses Feld. Bei aktiver
+IPSView-Hintergrundanpassung bestimmt das Widget die sichtbare Hintergrundfläche.
+JSLive-Importe verwenden ihre vorhandenen Hintergrundfelder.
+Die schematischen Farbzuordnungen beziehen ihre Feldnamen aus dem
+fertigen Formular und verwenden ein SVG-Motiv je Diagrammfamilie.
 Weitere klassische Multi-Instrumentenpanel-Vorlagen fehlen noch. Das
 Time-Series-Modul
 nutzt den Gateway-Vertrag `archive.read` für rohe oder aggregierte Werte und
@@ -822,21 +923,22 @@ ECharts-Integrität und den Gauge→Gateway→Visualisierungs-Datenweg unter PHP
 
 | Bestandteil | Name | Aufgabe |
 |---|---|---|
-| Library | SymconECharts | Gemeinsames installierbares Paket |
+| Library | eCharts | Gemeinsames installierbares Paket |
 | Splitter | EChartsGateway | Gemeinsame Dienste für mehrere Chart-Instanzen |
 | Gerät | EChartsGaugeSingle | Ein Gauge-Chart mit genau einer Quellvariable und zwei Ausgabewegen |
 | Gerät | EChartsGaugeMulti | Zwei bis 32 individuell skalierte Quellen mit optionaler Quellenauswahl und responsiven Instrumentenseiten |
 | Gerät | EChartsGaugeTacho | Tacho-Cockpit mit 2 bis 5 individuell gestaltbaren Instrumenten |
 | Gerät | EChartsGaugeChronograph | Chronograph mit 2 bis 5 individuell gestaltbaren Instrumenten |
-| Gerät | EChartsTimeSeries | Historische und live fortgeschriebene Linien und Flächen für 1 bis 32 Quellen, Reihenauswahl, bis zu acht links/rechts angeordnete Einheitengruppen sowie getrenntes Kachel- und IPSView-Design |
+| Gerät | EChartsGaugeWind | Windrose für die aktuelle Richtung und optionale Windgeschwindigkeit gemäß [ADR 0118](adr/0118-wind-gauge.md) |
+| Gerät | EChartsTimeSeries | Historische und live fortgeschriebene Linien und Flächen für 1 bis 32 Quellen, Reihenauswahl, bis zu acht gemeinsame oder eigene Wertachsen links/rechts sowie getrenntes Kachel- und IPSView-Design |
 | Gerät | EChartsBarCategory | Aktuelle einfache, gruppierte oder gestapelte Kategorienvergleiche für 1 bis 100 Quellen mit gemeinsamer Einheit, Kategoriennavigation, optionalem Min-/Max-Farbverlauf und getrenntem Kachel- und IPSView-Design |
-| Gerät | EChartsBarHistory | Historische rohe oder aggregierte Balken von 1 bis 32 Archivquellen, bis 16 Einheitengruppen und Reihenauswahl in nativer Kachel und optionalem IPSView-HTML |
+| Gerät | EChartsBarHistory | Historische rohe oder aggregierte Balken von 1 bis 32 Archivquellen, bis zu 16 gemeinsame oder eigene Wertachsen und Reihenauswahl in nativer Kachel und optionalem IPSView-HTML |
 | Gerät | EChartsBarWaterfall | Aktueller Startwert mit 1 bis 99 signierten Änderungen, berechneter Gesamtbilanz und ID-stabiler Kategoriennavigation in Kachel und optionalem IPSView-HTML |
 | Gerät | EChartsBarPolar | Aktuelle Werte aus 1 bis 100 Quellen als radiale Balken oder konzentrische Bögen mit optionaler Quellenauswahl, Seiten und vollständiger Werteskala in Kachel und IPSView |
 | Gerät | EChartsPie | Aktuelle Anteile aus 1 bis 100 Quellen als Kreis, Donut oder Nightingale-Rose mit optionaler ID-stabiler Quellenauswahl und getrennten Auswahl-/Gesamtanteilen |
 | Gerät | EChartsScatter | Archivierte X/Y-Werte mit optionaler Bubble-Größe, ausschließlich zeitgleiche abgeschlossene Intervalle ohne Interpolation, in Kachel und optionalem IPSView-HTML |
 | Gerät | EChartsHeatmap | Eine Archivvariable als lokale Tages-/Wochentag-Stunden-Matrix mit separaten Kachel- und IPSView-Designern |
-| Gerät | EChartsTree | Begrenzte, lesende IP-Symcon-Objekthierarchie unter einer Kategorie oder Instanz in Kachel und optionalem IPSView-HTML |
+| Gerät | EChartsTree | Begrenzte, lesende IP-Symcon-Objekthierarchie oder eigene JSON-Hierarchie gemäß Vertrag 1.0 in Kachel und optionalem IPSView-HTML |
 | Gerät | EChartsTreeSystemHealth | Lesende Objekthierarchie mit expliziten Zustandsregeln, Schwellen und aggregiertem sichtbarem Anlagenzustand |
 | Gerät | EChartsGraph | Frei konfigurierte, ungerichtete Verbindungen zwischen ausgewählten Symcon-Objekten in Kachel und optionalem IPSView-HTML |
 | Gerät | EChartsGraphZ2M | Zuletzt exportierte Zigbee2MQTT-Netzwerkkarte mit gerichteten LQI-Verbindungen in Kachel und optionalem IPSView-HTML; ohne Scan-Auslösung |
@@ -866,12 +968,13 @@ Modul-IDs und Datenfluss-IDs haben unterschiedliche Aufgaben.
 
 | Identität | GUID |
 |---|---|
-| Library SymconECharts | `{66BE21BE-988A-10EB-1BBB-1E2F444E9F85}` |
+| Library eCharts | `{66BE21BE-988A-10EB-1BBB-1E2F444E9F85}` |
 | Modul EChartsGateway | `{33C9DF44-6F6D-5916-4AAE-CCB24BD6928D}` |
 | Modul EChartsGaugeSingle | `{0CAA2780-342F-E5B9-2865-CB8DCED0BE7C}` |
 | Modul EChartsGaugeMulti | {E667D9C1-379D-44ED-A313-FF21FEFC355F} |
 | Modul EChartsGaugeTacho | `{9D072BFE-45B4-4442-B1D2-4FC458C3BABD}` |
 | Modul EChartsGaugeChronograph | `{B99C3ADA-9A90-486F-97E3-96C39554D9A6}` |
+| Modul EChartsGaugeWind | `{D807A371-1639-4CDF-8DF7-97001C5AA420}` |
 | Modul EChartsTimeSeries | `{EF172F3B-50F5-41D1-B18E-6BCDEAECCABA}` |
 | Modul EChartsBarCategory | `{F9A88437-FE9E-4038-ADAF-775623D2DDC1}` |
 | Modul EChartsBarHistory | `{BCC80B03-2FC9-45CA-B004-2C81D0689F50}` |
@@ -1179,7 +1282,7 @@ lokale Kopien. Synchronisierte Helper liegen ausschließlich unter
 
 Vor der Programmierung einer neuen Funktion oder Chartfamilie werden die
 fertigen Charts und vorhandenen Bibliotheken auf eine bereits bewährte Lösung
-geprüft. Eine kompatible, innerhalb von SymconECharts wiederverwendbare
+geprüft. Eine kompatible, innerhalb von eCharts wiederverwendbare
 Funktion wird als projektspezifischer Baustein direkt unter `libs`
 zentralisiert. ECharts-unabhängige Funktionen mit Nutzen für weitere
 Symcon-Module entstehen dagegen in `Symcon_ModuleHelper` und gelangen nur über
@@ -1243,13 +1346,18 @@ Quellcommit ab und setzt `date` auf dessen Commit-Zeit. Der getrennte
 Metadatencommit löst keine weitere Erhöhung aus. Tags, Releases und
 Veröffentlichungen bleiben manuelle, ausdrücklich freizugebende Schritte.
 
-Die ausdrücklich mit `<!-- symconecharts:prepared-beta -->` markierte
+Die ausdrücklich mit `<!-- echarts:prepared-beta -->` markierte
 Beta-Überschrift im Changelog folgt über `--prepared-beta-changelog` derselben
 berechneten Version. Der Bot committet beide Dateien gemeinsam; Datum und
-Inhalte bleiben erhalten. Ohne Markierung bleiben historische Überschriften
-unverändert. Nach erfolgter Veröffentlichung die Markierung im folgenden
-Entwicklungsstand entfernen. Die Store-Unterlagen wiederholen keine feste
-Versionsnummer im kopierbaren Freitext; der genaue Store-Commit bestimmt sie.
+Inhalte bleiben erhalten. Auf ausdrücklichen Eigentümerwunsch bleibt die
+Markierung nach der Erstveröffentlichung aktiv: Dieser Abschnitt ist eine
+fortgeschriebene Beta-Übersicht, kein unveränderlicher historischer
+Release-Eintrag. Sein Datum benennt den Beginn der öffentlichen Beta am
+03.11.2026; seine Version folgt dem aktuellen Entwicklungsstand. Aus der
+Überschrift folgt nicht, dass diese Version bereits im Store veröffentlicht
+ist. Andere historische Überschriften bleiben unverändert. Die Store-Unterlagen
+wiederholen keine feste Versionsnummer im kopierbaren Freitext; der genaue
+Store-Commit bestimmt sie.
 Aktuelle CI-Nachweise und der Freigabeablauf stehen unter [Beta-Store](BETA_STORE.md).
 
 Für die technische Projektbasis sind Struktur- und JSON-Prüfungen,
@@ -1360,7 +1468,7 @@ Eigene Beiträge stehen unter der
 ihre Originallizenzen; die konkrete Einbindung wird in
 [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md) dokumentiert.
 
-Required Notice: Copyright 2026 Burkhard Kneiseler. SymconECharts.
+Required Notice: Copyright 2026 Burkhard Kneiseler. eCharts.
 
 ## Zentrale Mausradbehandlung am 22.10.2026
 

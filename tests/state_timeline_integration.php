@@ -148,7 +148,7 @@ $extendedDesign = ['BorderType' => 'dashed', 'BorderRadius' => 12, 'LabelPositio
     'ShowSourceLabels'          => false, 'ShowAxisLine' => false, 'ShowAxisTicks' => true, 'AxisLineWidth' => 3,
     'AxisLineType'              => 'dotted', 'AxisLabelMargin' => 20, 'TimeLabelFormat' => 'dateTime',
     'GridColor'                 => 0x123ABC, 'GridOpacityPercent' => 45, 'GridLineWidth' => 2, 'GridLineType' => 'dashed',
-    'EmphasisEnabled'           => false, 'EmphasisFocus' => 'self', 'BlurOpacityPercent' => 15];
+    'EmphasisEnabled'           => false, 'EmphasisFocus' => 'self', 'BlurOpacityPercent' => 15, 'ZoomSliderSize' => 36];
 foreach ($extendedDesign as $name => $value) {
     foreach (['', 'IPSView'] as $prefix) {
         $control = findGaugeFormElement($form['elements'], $prefix . $name);
@@ -179,10 +179,7 @@ foreach ($extendedDesign as $name => $value) {
     $timeline->SetTestProperty($name, $defaults[$name]);
 }
 $translations = json_decode((string) file_get_contents(dirname(__DIR__) . '/EChartsStateTimeline/locale.json'), true)['translations']['de'];
-$helperTranslations = json_decode((string) file_get_contents(dirname(__DIR__) . '/libs/helper/translations/IPSViewHTMLPageHelper.json'), true);
-foreach ($helperTranslations['translations'] as $translation) {
-    $translations[$translation['en']] = $translation['de'];
-}
+$translations += designerGermanCaptions();
 $verifyCaptions = static function (array $entries) use (&$verifyCaptions, $translations): void
 {
     foreach ($entries as $key => $entry) {
@@ -270,12 +267,11 @@ assertGatewayGauge(
     'Preview visibility toggles and the font whitelist must work without unsafe SVG attributes.'
 );
 
-$GLOBALS['symconTestCopyTarget'] = $timeline;
 $timeline->SetTestProperty('RowHeightPercent', 47);
 foreach ($extendedDesign as $name => $value) {
     $timeline->SetTestProperty($name, $value);
 }
-$timeline->CopyTileDesignToIPSView();
+copyDesignAndApplyForm($timeline);
 assertGatewayGauge(str_contains($timeline->GetIPSViewHTML(), '"rowHeightPercent":47'), 'Copy action must preserve all effective design fields.');
 $copied = (new ReflectionProperty(IPSModuleStrict::class, 'properties'))->getValue($timeline);
 assertGatewayGauge(str_contains($timeline->GetIPSViewHTML(), '"fontFamily":"Georgia"')
@@ -285,7 +281,6 @@ foreach ($extendedDesign as $name => $value) {
     $timeline->SetTestProperty($name, $defaults[$name]);
     $timeline->SetTestProperty('IPSView' . $name, $defaults[$name]);
 }
-unset($GLOBALS['symconTestCopyTarget']);
 
 $parent = IPSModuleStrict::$ParentResponder;
 foreach ([
@@ -433,9 +428,15 @@ assertGatewayGauge(
     '32 source references, real HTML outputs and both form previews must remain bounded.'
 );
 $timeline->UpdateBarPreviewFromForm(json_encode(['Sources' => array_slice($largeSources, 0, 32),
-    'ShowSourceLabels'                                     => true], JSON_THROW_ON_ERROR));
+    'ShowSourceLabels'                                     => true, 'ZoomSliderSize' => 36, 'IPSViewZoomSliderSize' => 36], JSON_THROW_ON_ERROR));
 foreach (array_slice($timeline->GetTestFormUpdates(), -2) as $update) {
     $svg = base64_decode(substr($update['Value'], strlen('data:image/svg+xml;base64,')), true);
+    $xml = new DOMDocument();
+    assertGatewayGauge(
+        $xml->loadXML($svg, LIBXML_NONET)
+        && (new DOMXPath($xml))->query('//*[@data-row-slider and @width="36"]')->length === 1,
+        'The row navigator uses the requested width in both previews.'
+    );
     assertGatewayGauge(substr_count($svg, 'data-source-label="true"') === 8
         && str_contains($svg, 'Preview: first 8 of 32 rows. Scroll in the chart to see all.')
         && str_contains($svg, 'Equal contact'), 'A large preview must explicitly identify its real-source subset.');

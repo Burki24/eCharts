@@ -13,7 +13,7 @@
     var pinnedItemId = null;
     var echartsDesign = window.SYMC_ECHARTS_DESIGN;
     var selection = window.SYMC_ECHARTS_SERIES_SELECTION.create();
-    var navigation = window.SymconEChartsCategoryNavigation.create();
+    var navigation = window.eChartsCategoryNavigation.create();
     var pageItems = [];
     var selectedItems = [];
     var pageWindow = { first: 0, last: 0, visibleCount: 0 };
@@ -307,8 +307,7 @@
         }
 
         return {
-            backgroundColor: bootstrap.mode === 'ipsview' && bootstrap.options.adaptToBackground === true
-                ? 'transparent' : colors.background,
+            backgroundColor: echartsDesign.chartBackground(bootstrap, model, colors.background),
             animation: animation.animation,
             animationDuration: animation.animationDuration,
             animationDurationUpdate: animation.animationDurationUpdate,

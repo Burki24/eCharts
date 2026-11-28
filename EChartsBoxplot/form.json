@@ -276,6 +276,11 @@
                         },
                         {
                             "type": "CheckBox",
+                            "name": "EnablePeriodSelection",
+                            "caption": "Show period selection"
+                        },
+                        {
+                            "type": "CheckBox",
                             "name": "ShowTooltip",
                             "caption": "Show tooltip"
                         }
@@ -438,6 +443,19 @@
                             "type": "CheckBox",
                             "name": "ShowAxisLabels",
                             "caption": "Show axis labels"
+                        }
+                    ]
+                },
+                {
+                    "type": "RowLayout",
+                    "items": [
+                        {
+                            "type": "NumberSpinner",
+                            "name": "ZoomSliderSize",
+                            "caption": "Slider thickness (0 = automatic)",
+                            "minimum": 0,
+                            "maximum": 64,
+                            "suffix": "px"
                         }
                     ]
                 },

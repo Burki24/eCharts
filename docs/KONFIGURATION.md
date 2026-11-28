@@ -32,6 +32,11 @@ Modulanleitung und gelten zusätzlich zu den Bedienbereichen des Formulars.
   DateTime-JSON enthält die Integer-Felder `year`, `month`, `day`, `hour`,
   `minute`, `second`; reine Kalenderdaten nur `year`, `month`, `day`.
   Nicht existierende oder doppeldeutige Ortszeiten werden abgewiesen.
+- **Zeitraumauswahl anzeigen** (`EnablePeriodSelection`, `IPSViewEnablePeriodSelection`, jeweils Boolean, Standard `false`):
+  TimeSeries, BarHistory, Scatter, Boxplot, Parallel, Candlestick, ThemeRiver,
+  StateTimeline, Calendar und Heatmap bieten passende Archivzeiträume direkt im
+  Diagramm an. Die Auswahl gilt nur im geöffneten Dokument. Ein eigenes
+  IPSView-Design hat eine unabhängige Einstellung.
 - **Abhängigkeiten:** Eine passende Modusauswahl aktiviert die zugehörigen
   Detailfelder, etwa manuelle Skalen, Gradienten, SVG oder feste Zeiträume.
   Nicht jeder einzeln gültige Feldwert ergibt eine gültige Gesamtkonfiguration.
@@ -46,6 +51,10 @@ Modulanleitung und gelten zusätzlich zu den Bedienbereichen des Formulars.
 | An IPSView-Hintergrund anpassen / `IPSViewAdaptToBackground` | Boolean | `false` | Wenn im Modul angeboten: Hintergrundanpassung für das HTML-Widget. |
 | Hintergrundfarbe / `IPSViewBackgroundColor` | Integer | `-1` | Wenn angeboten: automatische Farbe; eigene Farbe als `0xRRGGBB`. |
 | Deckkraft / `IPSViewBackgroundOpacityPercent` | Integer | `35` | Wenn angeboten: Hintergrundtönung von 0 bis 100 %. |
+
+Für ein eigenes IPSView-Design **Kacheldesign verwenden** ausschalten.
+Der Kopierknopf übernimmt die aktuellen Kachelfelder einschließlich ungespeicherter
+Eingaben. Die IPSView-Vorschau zeigt den Entwurf sofort. **Übernehmen** speichert ihn.
 
 Die Tabellen unten führen das Kacheldesign auf. Für jede tatsächlich registrierte
 Designentsprechung gilt derselbe Name mit dem Präfix `IPSView`, etwa
@@ -94,6 +103,7 @@ abweichen. Anleitung: [Migration von JSLive](JSLIVE_MIGRATION.md).
 - [EChartsFunnel](#echartsfunnel)
 - [EChartsGateway](#echartsgateway)
 - [EChartsGaugeChronograph](#echartsgaugechronograph)
+- [EChartsGaugeWind](#echartsgaugewind)
 - [EChartsGaugeMulti](#echartsgaugemulti)
 - [EChartsGaugeSingle](#echartsgaugesingle)
 - [EChartsGaugeTacho](#echartsgaugetacho)
@@ -181,11 +191,17 @@ Die [gemeinsamen IPSView-Regeln](#gemeinsame-ipsview-einstellungen) und gegebene
 
 [Zur Modulanleitung](../EChartsBarHistory/README.md).
 
+In jeder Zeile von `Sources` legt das optionale Integerfeld `StackGroup` die
+Stapelgruppe fest. Fehlend oder 0 zeigt die Reihe einzeln. 1–32 gruppiert
+Quellen gleicher Einheit bei automatischer oder fester Verdichtung.
+
 | Formularfeld | Technischer Name | Typ | Standard | Auswahl / Bedienbereich |
 | --- | --- | --- | --- | --- |
 | Archivquellen (1 bis 32) | `Sources` | String | `"[]"` | Siehe Modulanleitung |
+| Ausrichtung | `Orientation` | String | `"vertical"` | `"vertical"` Vertikal oder `"horizontal"` Horizontal |
+| IPSView-Ausrichtung | `IPSViewOrientation` | String | `"vertical"` | Eigene Ausrichtung bei deaktiviertem Kacheldesign |
 | Titel | `Title` | String | `""` | Siehe Modulanleitung |
-| Zeitraum | `Range` | String | `"24h"` | `"1h"` 1 Stunde; `"6h"` 6 Stunden; `"24h"` 24 Stunden; `"7d"` 7 Tage; `"30d"` 30 Tage; `"today"` Heute; `"yesterday"` Gestern; `"current-week"` Diese Woche; `"current-month"` Dieser Monat; `"custom"` Benutzerdefiniert |
+| Zeitraum | `Range` | String | `"24h"` | `"1h"` 1 Stunde; `"6h"` 6 Stunden; `"24h"` 24 Stunden; `"7d"` 7 Tage; `"30d"` 30 Tage; `"today"` Heute; `"yesterday"` Gestern; `"current-week"` Diese Woche; `"current-month"` Dieser Monat; `"current-year"` Dieses Jahr; `"custom"` Benutzerdefiniert |
 | Zeitraumwert | `CustomRangeValue` | Integer | `7` | 1–1000 |
 | Zeitraumeinheit | `CustomRangeUnit` | String | `"day"` | `"minute"` Minuten; `"hour"` Stunden; `"day"` Tage; `"week"` Wochen |
 | Datenmodus | `DataMode` | String | `"auto"` | `"raw"` Rohwerte; `"auto"` Automatische Verdichtung; `"minute"` 1 Minute; `"five-minutes"` 5 Minuten; `"fifteen-minutes"` 15 Minuten; `"hour"` 1 Stunde; `"day"` 1 Tag |
@@ -222,7 +238,7 @@ Die [gemeinsamen IPSView-Regeln](#gemeinsame-ipsview-einstellungen) und gegebene
 | Startverzögerung | `AnimationDelay` | Integer | `0` | 0–3000 ms |
 | Aktualisierungsverzögerung | `AnimationDelayUpdate` | Integer | `0` | 0–3000 ms |
 | Zeiteinstellungen der Kachel verwenden | `IPSViewUseTileTimeSettings` | Boolean | `true` | `true` / `false` |
-| IPSView-Zeitraum | `IPSViewRange` | String | `"24h"` | `"1h"` 1 Stunde; `"6h"` 6 Stunden; `"24h"` 24 Stunden; `"7d"` 7 Tage; `"30d"` 30 Tage; `"today"` Heute; `"yesterday"` Gestern; `"current-week"` Diese Woche; `"current-month"` Dieser Monat; `"custom"` Benutzerdefiniert |
+| IPSView-Zeitraum | `IPSViewRange` | String | `"24h"` | `"1h"` 1 Stunde; `"6h"` 6 Stunden; `"24h"` 24 Stunden; `"7d"` 7 Tage; `"30d"` 30 Tage; `"today"` Heute; `"yesterday"` Gestern; `"current-week"` Diese Woche; `"current-month"` Dieser Monat; `"current-year"` Dieses Jahr; `"custom"` Benutzerdefiniert |
 | Zeitraumwert | `IPSViewCustomRangeValue` | Integer | `7` | 1–1000 |
 | Zeitraumeinheit | `IPSViewCustomRangeUnit` | String | `"day"` | `"minute"` Minuten; `"hour"` Stunden; `"day"` Tage; `"week"` Wochen |
 | Beschriftung der Zeitachse | `IPSViewTimeAxisLabelFormat` | String | `"auto"` | `"auto"` Automatisch; `"time"` Uhrzeit; `"date"` Datum; `"date-time"` Datum und Uhrzeit |
@@ -238,7 +254,7 @@ Die [gemeinsamen IPSView-Regeln](#gemeinsame-ipsview-einstellungen) und gegebene
 | Einheit | `Unit` | String | `""` | Siehe Modulanleitung |
 | Nachkommastellen | `Decimals` | Integer | `1` | 0–6 |
 | Reduzierer | `Reducer` | String | `"auto"` | `"auto"` Automatisch; `"average"` Durchschnitt; `"sum"` Summe; `"minimum"` Minimum; `"maximum"` Maximum |
-| Achsenseite | `AxisPosition` | String | `"auto"` | `"auto"` Automatisch; `"left"` Links; `"right"` Rechts |
+| Achsenseite | `AxisPosition` | String | `"auto"` | `"auto"` Automatisch; `"left"` Links / unten; `"right"` Rechts / oben |
 | Farbe | `Color` | Integer | `-1` | `0xRRGGBB`; Automatik nach Feldvorgabe |
 
 Die [gemeinsamen IPSView-Regeln](#gemeinsame-ipsview-einstellungen) und gegebenenfalls
@@ -734,6 +750,29 @@ Die [gemeinsamen IPSView-Regeln](#gemeinsame-ipsview-einstellungen) und gegebene
 Das Gateway registriert keine konfigurierbaren Properties. Datei, Zuordnungen,
 Zielkategorie und Bestätigungen sind flüchtige Formularangaben; das Importjournal
 wird getrennt gespeichert. Es gibt keine Diagramm-Designer oder Ausgabevariablen.
+
+## EChartsGaugeWind
+
+[Zur Modulanleitung](../EChartsGaugeWind/README.md).
+
+| Formularfeld | Technischer Name | Standard | Bedeutung |
+| --- | --- | --- | --- |
+| Windrichtung (Grad) | `DirectionVariableID` | keine Quelle | Numerische Richtung, aus der der Wind kommt, im Uhrzeigersinn ab Nord |
+| Windgeschwindigkeit (optional) | `SpeedVariableID` | keine Quelle | Separate numerische Variable mit Werten ab null |
+| Einheit und Nachkommastellen der Windgeschwindigkeit | `SpeedUnit`, `SpeedDecimals` | km/h, 2 | Einheit des Originalwerts und Anzeige mit 0 bis 6 Nachkommastellen |
+| Titel | `Title` | leer | Freie Überschrift für die Windrose |
+| Windrose drehen (Zeiger oben fixieren) | `RotateCompass` | aus | Richtungsanzeige so ausrichten, dass die gemeldete Windrichtung oben am festen Zeiger steht |
+| Windrose | `CompassPreset`, `IPSViewCompassPreset` | `auto` | Automatisch die eigene SVG oder das Standardzifferblatt verwenden, die Standardwindrose ausdrücklich wählen oder eines von 37 Motiven anzeigen. Bei den fünf einfarbigen Motiven scheint der gewählte Diagrammhintergrund durch. |
+| Eigene Windrose (SVG) | `CompassSvg`, `IPSViewCompassSvg` | leer | Eigenes Kompassbild mit Skala und Himmelsrichtungen, bis 256 KiB. Die Vorschau folgt der Dateiauswahl und dem Drehmodus. |
+| Windrotor anzeigen | `ShowRotor` | aus | Zusätzliches Rotorblatt für die Windgeschwindigkeit einblenden |
+| Windrichtung in Grad anzeigen | `ShowDegreeValue` | aus | Himmelsrichtung und Winkel zusätzlich als Text anzeigen |
+| Animation | `AnimationEnabled`, `AnimationDuration`, `AnimationDurationUpdate` | an, 350 ms, 500 ms | Bewegung zulassen und Dauer für Start und Aktualisierung wählen |
+| ECharts-Theme | `EChartsTheme` | auto | Automatisches Symcon-Design oder eine der angebotenen Vorlagen |
+| Farben | `DialColor`, `RingColor`, `TickColor`, `CardinalColor`, `PointerColor`, `HubColor`, `RotorColor`, `TitleColor`, `ValueColor` | automatisch | Farben für Zifferblatt, Ring, Striche, Himmelsrichtungen, Zeiger, Nabe, Blatt und Texte |
+
+IPSView übernimmt standardmäßig das Kacheldesign (`IPSViewUseTileDesign`).
+Für eine abweichende Darstellung stehen die Designfelder mit Präfix
+`IPSView` im eigenen Designer zur Verfügung.
 
 ## EChartsGaugeChronograph
 
@@ -1849,7 +1888,7 @@ Die [gemeinsamen IPSView-Regeln](#gemeinsame-ipsview-einstellungen) und gegebene
 | --- | --- | --- | --- | --- |
 | Streudiagramm (optional mit Blasengröße) | `Sources` | String | `"[]"` | Siehe Modulanleitung |
 | Titel | `Title` | String | `""` | Siehe Modulanleitung |
-| Zeitraum | `Range` | String | `"24h"` | `"1h"` 1 Stunde; `"6h"` 6 Stunden; `"24h"` 24 Stunden; `"7d"` 7 Tage; `"30d"` 30 Tage; `"today"` Heute; `"yesterday"` Gestern; `"current-week"` Diese Woche; `"current-month"` Dieser Monat; `"custom"` Benutzerdefiniert |
+| Zeitraum | `Range` | String | `"24h"` | `"1h"` 1 Stunde; `"6h"` 6 Stunden; `"24h"` 24 Stunden; `"7d"` 7 Tage; `"30d"` 30 Tage; `"today"` Heute; `"yesterday"` Gestern; `"current-week"` Diese Woche; `"current-month"` Dieser Monat; `"current-year"` Dieses Jahr; `"custom"` Benutzerdefiniert |
 | Zeitraumwert | `CustomRangeValue` | Integer | `7` | 1–1000 |
 | Zeitraumeinheit | `CustomRangeUnit` | String | `"day"` | `"minute"` Minuten; `"hour"` Stunden; `"day"` Tage; `"week"` Wochen |
 | Verdichtung | `DataMode` | String | `"auto"` | `"auto"` Automatisch; `"minute"` 1 Minute; `"five-minutes"` 5 Minuten; `"fifteen-minutes"` 15 Minuten; `"hour"` 1 Stunde; `"day"` 1 day |
@@ -1898,7 +1937,7 @@ Die [gemeinsamen IPSView-Regeln](#gemeinsame-ipsview-einstellungen) und gegebene
 | Startverzögerung | `AnimationDelay` | Integer | `0` | 0–3000 ms |
 | Aktualisierungsverzögerung | `AnimationDelayUpdate` | Integer | `0` | 0–3000 ms |
 | Zeiteinstellungen der Kachel verwenden | `IPSViewUseTileTimeSettings` | Boolean | `true` | `true` / `false` |
-| IPSView-Zeitraum | `IPSViewRange` | String | `"24h"` | `"1h"` 1 Stunde; `"6h"` 6 Stunden; `"24h"` 24 Stunden; `"7d"` 7 Tage; `"30d"` 30 Tage; `"today"` Heute; `"yesterday"` Gestern; `"current-week"` Diese Woche; `"current-month"` Dieser Monat; `"custom"` Benutzerdefiniert |
+| IPSView-Zeitraum | `IPSViewRange` | String | `"24h"` | `"1h"` 1 Stunde; `"6h"` 6 Stunden; `"24h"` 24 Stunden; `"7d"` 7 Tage; `"30d"` 30 Tage; `"today"` Heute; `"yesterday"` Gestern; `"current-week"` Diese Woche; `"current-month"` Dieser Monat; `"current-year"` Dieses Jahr; `"custom"` Benutzerdefiniert |
 | Zeitraumwert | `IPSViewCustomRangeValue` | Integer | `7` | 1–1000 |
 | Zeitraumeinheit | `IPSViewCustomRangeUnit` | String | `"day"` | `"minute"` Minuten; `"hour"` Stunden; `"day"` Tage; `"week"` Wochen |
 
@@ -2150,12 +2189,18 @@ Die [gemeinsamen IPSView-Regeln](#gemeinsame-ipsview-einstellungen) und gegebene
 
 [Zur Modulanleitung](../EChartsTimeSeries/README.md).
 
+In `Sources` bestimmt das optionale Integer-Feld `StackGroup` die Darstellung
+je Quelle. Fehlend oder 0 verwendet den gewählten Einzelstil. 1–32 zeichnet
+Flächen derselben Gruppe übereinander. Jede Gruppe benötigt eine gemeinsame
+wirksame Einheit und automatische oder feste Verdichtung. Ein Beispiel für
+zwei Leistungsvariablen steht in der [Modulanleitung](../EChartsTimeSeries/README.md#pv-leistung-als-gestapelte-flächen-anzeigen).
+
 | Formularfeld | Technischer Name | Typ | Standard | Auswahl / Bedienbereich |
 | --- | --- | --- | --- | --- |
 | Zeitreihenquellen | `Sources` | String | `"[]"` | Siehe Modulanleitung |
 | Referenzlinien und Wertebereiche | `Annotations` | String | `"[]"` | Siehe Modulanleitung |
 | Titel | `Title` | String | `""` | Siehe Modulanleitung |
-| Zeitraum | `Range` | String | `"24h"` | `"1h"` 1 Stunde; `"6h"` 6 Stunden; `"24h"` 24 Stunden; `"7d"` 7 Tage; `"30d"` 30 Tage; `"today"` Heute; `"yesterday"` Gestern; `"current-week"` Diese Woche; `"current-month"` Dieser Monat; `"custom"` Benutzerdefiniert |
+| Zeitraum | `Range` | String | `"24h"` | `"1h"` 1 Stunde; `"6h"` 6 Stunden; `"24h"` 24 Stunden; `"7d"` 7 Tage; `"30d"` 30 Tage; `"today"` Heute; `"yesterday"` Gestern; `"current-week"` Diese Woche; `"current-month"` Dieser Monat; `"current-year"` Dieses Jahr; `"custom"` Benutzerdefiniert |
 | Zeitraumwert | `CustomRangeValue` | Integer | `7` | 1–1000 |
 | Zeitraumeinheit | `CustomRangeUnit` | String | `"day"` | `"minute"` Minuten; `"hour"` Stunden; `"day"` Tage; `"week"` Wochen |
 | Beschriftung der Zeitachse | `TimeAxisLabelFormat` | String | `"auto"` | `"auto"` Automatisch; `"time"` Uhrzeit; `"date"` Datum; `"date-time"` Datum und Uhrzeit |
@@ -2194,7 +2239,7 @@ Die [gemeinsamen IPSView-Regeln](#gemeinsame-ipsview-einstellungen) und gegebene
 | Rasterfarbe | `GridColor` | Integer | `-1` | `0xRRGGBB`; Automatik nach Feldvorgabe |
 | Wertfarbe | `ValueColor` | Integer | `-1` | `0xRRGGBB`; Automatik nach Feldvorgabe |
 | Zeiteinstellungen der Kachel verwenden | `IPSViewUseTileTimeSettings` | Boolean | `true` | `true` / `false` |
-| IPSView-Zeitraum | `IPSViewRange` | String | `"24h"` | `"1h"` 1 Stunde; `"6h"` 6 Stunden; `"24h"` 24 Stunden; `"7d"` 7 Tage; `"30d"` 30 Tage; `"today"` Heute; `"yesterday"` Gestern; `"current-week"` Diese Woche; `"current-month"` Dieser Monat; `"custom"` Benutzerdefiniert |
+| IPSView-Zeitraum | `IPSViewRange` | String | `"24h"` | `"1h"` 1 Stunde; `"6h"` 6 Stunden; `"24h"` 24 Stunden; `"7d"` 7 Tage; `"30d"` 30 Tage; `"today"` Heute; `"yesterday"` Gestern; `"current-week"` Diese Woche; `"current-month"` Dieser Monat; `"current-year"` Dieses Jahr; `"custom"` Benutzerdefiniert |
 | Zeitraumwert | `IPSViewCustomRangeValue` | Integer | `7` | 1–1000 |
 | Zeitraumeinheit | `IPSViewCustomRangeUnit` | String | `"day"` | `"minute"` Minuten; `"hour"` Stunden; `"day"` Tage; `"week"` Wochen |
 | Beschriftung der Zeitachse | `IPSViewTimeAxisLabelFormat` | String | `"auto"` | `"auto"` Automatisch; `"time"` Uhrzeit; `"date"` Datum; `"date-time"` Datum und Uhrzeit |
@@ -2251,6 +2296,10 @@ Die [gemeinsamen IPSView-Regeln](#gemeinsame-ipsview-einstellungen) und gegebene
 
 | Formularfeld | Technischer Name | Typ | Standard | Auswahl / Bedienbereich |
 | --- | --- | --- | --- | --- |
+| Datenquelle des Baums | `SourceMode` | String | `"objects"` | `objects` Symcon-Objektbaum; `json` gespeichertes JSON; `variable` Stringvariable |
+| JSON-Dokument des Baums | `JsonDocument` | String | `""` | Tree-JSON 1.0; nur im Modus `json` aktiv |
+| JSON-Stringvariable | `JsonVariableID` | Integer | `0` | Vorhandene Stringvariable; nur im Modus `variable` aktiv |
+| Lokale Objektbindungen im JSON erlauben | `UseJsonObjectBindings` | Boolean | `false` | `objectId` ausdrücklich freigeben; keine Änderung gebundener Objekte |
 | Wurzelkategorie oder -instanz | `RootObjectID` | Integer | `0` | Vorhandene ID |
 | Symcon-Wurzel (gesamter Objektbaum) verwenden | `UseSymconRoot` | Boolean | `false` | `true` / `false` |
 | Titel | `Title` | String | `""` | Siehe Modulanleitung |

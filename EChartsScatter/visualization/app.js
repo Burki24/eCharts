@@ -3,7 +3,7 @@
 
     var bootstrap = window.SYMC_VISUALIZATION || {};
     var design = window.SYMC_ECHARTS_DESIGN;
-    var zoom = window.SymconEChartsZoom;
+    var zoom = window.eChartsZoom;
     var chartElement = document.getElementById('echarts-scatter-chart');
     var emptyElement = document.getElementById('echarts-scatter-empty');
     var warningElement = document.getElementById('echarts-scatter-warning');
@@ -99,7 +99,7 @@
             top: top + (hasTitle ? 32 : 4), itemWidth: compact ? 8 : 12,
             itemHeight: Math.round(Math.min(420, Math.max(160, chartElement.clientWidth * 0.32))),
             text: [formatValue(maximum, role), formatValue(minimum, role)],
-            textStyle: { color: style.axisColor || colors.muted,
+            textStyle: { color: style.legendColor || style.axisColor || colors.muted,
                 fontSize: compact ? 9 : 11 },
             inRange: { color: [style.colorMapLowColor || colors.seriesColors[0] || colors.accent,
                 style.colorMapHighColor || colors.seriesColors[3] || colors.accent] }
@@ -226,6 +226,17 @@
             right: zoomEnabled ? (compact ? 56 : 70) : (compact ? 20 : 38),
             top: gridTop, bottom: zoomEnabled ? (compact ? 78 : 94) : (compact ? 54 : 70),
             containLabel: true };
+        var sliderSize = 0;
+        if (zoomEnabled && style.zoomSliderSize > 0) {
+            var automatic = zoom.sliderThickness(compact);
+            var legendSpace = Array.isArray(model.groups) ? groupLegendHeight(style) : 0;
+            var room = Math.min(chartElement.clientWidth - grid.left - grid.right,
+                chartElement.clientHeight - grid.top - grid.bottom - legendSpace);
+            sliderSize = Math.min(zoom.sliderThickness(compact, style.zoomSliderSize),
+                automatic + Math.max(0, Math.floor(room - 32)));
+            grid.right += sliderSize - automatic;
+            grid.bottom += sliderSize - automatic;
+        }
         var valueLabel = design.valueLabel(style, 'top', ['top', 'bottom', 'left', 'right', 'inside',
             'insideTop', 'insideBottom', 'insideLeft', 'insideRight'], 5);
         var valueFontSize = design.fontSizePercent(style.valueFontSizePercent, 11);
@@ -233,8 +244,7 @@
             ? adaptiveLabelVisibility(points, style, xRole, yRole, grid, valueLabel, valueFontSize, base) : null;
 
         return {
-            backgroundColor: bootstrap.mode === 'ipsview' && bootstrap.options.adaptToBackground === true
-                ? 'transparent' : colors.background,
+            backgroundColor: design.chartBackground(bootstrap, model, colors.background),
             ...design.animationOptions(style, { enabled: true, initialDuration: 350, updateDuration: 500 }),
             aria: { enabled: true, decal: { show: false }, description: [xRole.label, yRole.label,
                 sizeRole && sizeRole.label].filter(Boolean).join(', ') },
@@ -244,7 +254,7 @@
             },
             visualMap: visualMap || undefined,
             toolbox: brushEnabled ? {
-                show: true, right: zoomEnabled ? (compact ? 56 : 70) : (compact ? 20 : 38),
+                show: true, right: grid.right,
                 top: toolboxTop, padding: 2,
                 itemSize: brushToolSize, itemGap: 8,
                 iconStyle: { borderColor: colors.text, borderWidth: 2 },
@@ -261,7 +271,7 @@
                 outOfBrush: { opacity: 0.18 }
             } : undefined,
             grid: grid,
-            dataZoom: zoom.cartesianOptions(zoomEnabled, bootstrap.mode, compact),
+            dataZoom: zoom.cartesianOptions(zoomEnabled, bootstrap.mode, compact, sliderSize),
             xAxis: {
                 type: 'value', name: String(xRole.label || 'X') + (xRole.unit ? ' (' + xRole.unit + ')' : ''),
                 scale: style.xAxisRangeMode !== 'zero',
@@ -329,6 +339,10 @@
         };
     }
 
+    function groupLegendHeight(style) {
+        return Math.ceil(design.fontSizePercent(style.axisFontSizePercent, 12) * 1.5 + 16);
+    }
+
     function buildOption(model, theme) {
         if (!Array.isArray(model.groups)) { return buildSingleOption(model, theme); }
         var groups = model.groups;
@@ -341,7 +355,7 @@
         var colors = colorsFor(theme);
         var selected = groupSelection.reconcile(groups);
         var fontSize = design.fontSizePercent(style.axisFontSizePercent, 12);
-        var reserve = Math.ceil(fontSize * 1.5 + 16);
+        var reserve = groupLegendHeight(style);
         common.grid.bottom += reserve;
         common.dataZoom.forEach(function (entry) {
             if (entry.id === 'x-slider') { entry.bottom += reserve; }
@@ -384,9 +398,10 @@
                 var group = groups.find(function (g) { return g.id === id; });
                 return group ? group.label || translate('Comparison') : '';
             },
-            textStyle: { color: style.axisColor || colors.text, fontSize: fontSize,
+            textStyle: { color: style.legendColor || style.axisColor || colors.text, fontSize: fontSize,
                 width: Math.max(50, Math.min(180, chartElement.clientWidth / 3)), overflow: 'truncate' },
-            pageTextStyle: { color: colors.text, fontSize: fontSize }
+            pageTextStyle: { color: style.legendColor || colors.text, fontSize: fontSize },
+            ...(style.legendColor ? { pageIconColor: style.legendColor } : {})
         };
         return common;
     }

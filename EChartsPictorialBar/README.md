@@ -3,7 +3,7 @@
 PictorialBar vergleicht aktuelle Symcon-Werte als Symbolbalken.
 Es verwendet das gemeinsame EChartsGateway und benötigt kein Archiv.
 
-Installation: Im **Symcon-Modulstore** nach **SymconECharts** suchen.
+Installation: Im **Symcon-Modulstore** nach **eCharts** suchen.
 [Voraussetzungen und Einrichtung](../README.md#installation-und-erstes-diagramm)
 (IP-Symcon 9.0/9.1, PHP 8.5, gemeinsames Gateway).
 Alle technischen Felder, Standardwerte und Quellenparameter stehen in der
@@ -18,9 +18,11 @@ Alle technischen Felder, Standardwerte und Quellenparameter stehen in der
 3. Titel sowie Symbolform, Ausrichtung und Sortierung festlegen.
 4. Optional die IPSView-Ausgabe einschalten und deren Design unabhängig gestalten.
 
-Es werden ausschließlich endliche, nichtnegative Werte unterstützt. Null ist
-gültig und bleibt als Kategorie mit Wert erhalten, zeichnet aber keinen
+Ohne Normalisierung werden ausschließlich endliche, nichtnegative Werte
+unterstützt. Null ist gültig und bleibt als Kategorie mit Wert erhalten, zeichnet aber keinen
 Symbolbalken. Negative Werte und ungeeignete Quellen werden sichtbar gemeldet.
+Mit der unten beschriebenen Min/Max-Normalisierung sind auch negative
+Originalwerte zulässig; der Symbolbalken zeigt dann ihr normalisiertes Gewicht.
 Gleiche Anzeigenamen sind erlaubt; jede Variable bleibt separat erhalten.
 Änderungen der Quellen aktualisieren die Anzeige automatisch.
 
@@ -91,6 +93,8 @@ Quellen-Min/Max ignoriert und das bisherige Verhalten einschließlich
 gemeinsamer Einheit, nichtnegativer Werte und eigener Skala bleibt erhalten.
 
 ## Skala und Symbole
+
+Mit **Reglerdicke (0 = automatisch)** im Kacheldesigner stellst Du die Dicke der Kategoriennavigation auf 1 bis 64 Pixel ein. 0 verwendet die bisherige Automatik (12 Pixel). Probiere auf dem Handy beispielsweise 32 Pixel. Im IPSView-Designer kannst Du bei eigenem Design einen anderen Wert wählen.
 
 Bei mehr als 16 Quellen erscheint automatisch eine Kategoriennavigation:
 rechts bei horizontalen Balken, unten bei vertikalen Balken. Der sichtbare
@@ -163,6 +167,7 @@ eine andere Datei verwenden; „Kacheldesign übernehmen“ kopiert auch die SVG
 Unterstützt werden pfadbasierte SVG-Silhouetten mit einer gültigen `viewBox`
 und 1–32 `path`-Elementen, optional in `g`-Gruppen. Relative Pfadbefehle,
 mehrere Teilpfade und verschobene `viewBox`-Ursprünge sind erlaubt.
+Eine UTF-8-Markierung (BOM) und Exportkommentare dürfen in der SVG-Datei bleiben.
 Texte, Kreise, Rechtecke und andere Grundformen im Grafikprogramm zuerst
 in Pfade umwandeln; Transformationen vorher auf die Pfadkoordinaten anwenden.
 Für reine Konturlinien den Strich in eine gefüllte Kontur umwandeln.
@@ -324,7 +329,7 @@ oder das Gateway. Alle aufgeführten Argumente beim Symcon-Aufruf übergeben.
 
 | Signatur | Rückgabe und Wirkung |
 | --- | --- |
-| `ECPB_CopyTileDesignToIPSView(int $InstanzID): void` | Kopiert das gespeicherte Kacheldesign, ersetzt die unabhängigen IPSView-Designwerte und wendet sie an; aktiviert unabhängiges Design. |
+| `ECPB_CopyTileDesignToIPSView(int $InstanzID): void` | Überträgt die gespeicherten Kachelwerte in den geöffneten IPSView-Formularentwurf. Erst **Übernehmen** speichert die Kopie. |
 | `ECPB_GetPictorialBarData(int $InstanzID): string` | Liest das reguläre konfigurierte Diagrammmodell als JSON; keine Änderung von Quellen oder Archivwerten. |
 | `ECPB_GetPictorialBarDiagnostic(int $InstanzID): string` | JSON-Momentaufnahme der Konfigurationsprüfung und letzten Fehlermeldung; kein Nachweis einer erfolgreichen Datenabfrage. |
 | `ECPB_GetIPSViewHTML(int $InstanzID): string` | Vollständiges HTML-Dokument für IPSView; der Rückgabewert bestätigt keine Anzeige in einem Client. |

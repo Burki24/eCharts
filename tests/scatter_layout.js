@@ -136,6 +136,16 @@ const globalColors = render({ ...globalSizes, scatter: { ...globalSizes.scatter,
 assert.deepEqual(Array.from(globalColors.option.visualMap.seriesIndex), [0, 1]);
 assert.equal(globalColors.option.visualMap.min, 1);
 assert.equal(globalColors.option.visualMap.max, 7);
+for (const mode of ['symcon', 'ipsview']) {
+    const chart = render({ ...globalSizes, scatter: { ...globalSizes.scatter, style: {
+        ...globalSizes.scatter.style, axisColor: '#AA2200', legendColor: '#000000',
+        colorMapEnabled: true, colorMapShowLegend: true } } }, mode);
+    assert.equal(chart.option.legend.textStyle.color, '#000000');
+    assert.equal(chart.option.legend.pageTextStyle.color, '#000000');
+    assert.equal(chart.option.legend.pageIconColor, '#000000');
+    assert.equal(chart.option.visualMap.textStyle.color, '#000000');
+    assert.equal(chart.option.xAxis.axisLabel.color, '#AA2200');
+}
 const extremes = render({ ...globalSizes, groups: globalSizes.groups.map((g, i) => ({ ...g,
     points: [[100, 10, 50, i === 0 ? -1e308 : 1e308]] })) });
 assert.equal(extremes.option.series[0].symbolSize([10, 50, 0, 100]), 25,
@@ -353,6 +363,21 @@ assert.equal(ipsview.option.dataZoom[1].zoomOnMouseWheel, false);
 const compactBubble = render(model, 'ipsview', 400, 240);
 assert.equal(compactBubble.option.dataZoom[2].height, 8);
 assert.equal(compactBubble.option.dataZoom[3].width, 8);
+for (const mode of ['symcon', 'ipsview']) {
+    const thicker = render({ ...model, scatter: { ...model.scatter, style: {
+        ...model.scatter.style, zoomSliderSize: 36
+    } } }, mode, 400, 320).option;
+    assert.equal(thicker.dataZoom[2].height, 36);
+    assert.equal(thicker.dataZoom[3].width, 36);
+    assert.equal(thicker.dataZoom[2].handleSize, 36);
+    assert.equal(thicker.grid.bottom, compactBubble.option.grid.bottom + 28);
+    assert.equal(thicker.grid.right, compactBubble.option.grid.right + 28);
+}
+const tiny = render({ ...groupedModel, scatter: { ...groupedModel.scatter, style: {
+    ...groupedModel.scatter.style, zoomSliderSize: 64
+} } }, 'ipsview', 300, 200).option;
+assert.ok(tiny.dataZoom[2].height >= 8 && tiny.dataZoom[2].height < 64);
+assert.equal(tiny.dataZoom[2].height, tiny.dataZoom[3].width);
 for (const entry of bubble.option.dataZoom) {
     entry.start = entry.xAxisIndex === 0 ? 20 : 35;
     entry.end = entry.xAxisIndex === 0 ? 65 : 80;

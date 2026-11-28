@@ -110,6 +110,17 @@
                     }
                 },
                 {
+                    "caption": "Stack group (0 = separate)",
+                    "name": "StackGroup",
+                    "width": "155px",
+                    "add": 0,
+                    "edit": {
+                        "type": "NumberSpinner",
+                        "minimum": 0,
+                        "maximum": 32
+                    }
+                },
+                {
                     "caption": "Reducer",
                     "name": "Reducer",
                     "width": "110px",
@@ -171,19 +182,27 @@
         },
         {
             "type": "Label",
-            "caption": "Sources with the same unit share one value axis and must use the same explicitly selected side. Automatic distributes unit axes between left and right."
+            "caption": "To stack areas, assign the same group and unit to the sources and choose automatic or fixed aggregation. A missing contribution leaves a gap in the entire stack."
+        },
+        {
+            "type": "Label",
+            "caption": "Sources with the same unit share a value axis by default. Choose an own value axis in the source editor to set its side and range independently."
+        },
+        {
+            "type": "Label",
+            "caption": "For ordinary measurement curves, leave the following list empty. To mark a threshold or target range, select one of your time series sources and enter fixed values in its unit."
         },
         {
             "type": "List",
             "name": "Annotations",
-            "caption": "Reference lines and value ranges",
+            "caption": "Reference lines and value ranges (optional)",
             "rowCount": 4,
             "add": true,
             "delete": true,
             "changeOrder": true,
             "columns": [
                 {
-                    "caption": "Source",
+                    "caption": "Assigned time series",
                     "name": "VariableID",
                     "width": "220px",
                     "add": 0,
@@ -324,6 +343,10 @@
                         {
                             "caption": "This month",
                             "value": "current-month"
+                        },
+                        {
+                            "caption": "This year",
+                            "value": "current-year"
                         },
                         {
                             "caption": "Custom",
@@ -574,8 +597,21 @@
                         },
                         {
                             "type": "CheckBox",
+                            "name": "EnablePeriodSelection",
+                            "caption": "Show period selection"
+                        },
+                        {
+                            "type": "CheckBox",
                             "name": "EnableZoom",
                             "caption": "Enable zoom"
+                        },
+                        {
+                            "type": "NumberSpinner",
+                            "name": "ZoomSliderSize",
+                            "caption": "Slider thickness (0 = automatic)",
+                            "minimum": 0,
+                            "maximum": 64,
+                            "suffix": "px"
                         }
                     ]
                 },
@@ -627,7 +663,12 @@
                         {
                             "type": "CheckBox",
                             "name": "ShowGrid",
-                            "caption": "Show grid"
+                            "caption": "Show horizontal grid lines"
+                        },
+                        {
+                            "type": "CheckBox",
+                            "name": "ShowVerticalGrid",
+                            "caption": "Show vertical grid lines"
                         },
                         {
                             "type": "CheckBox",
@@ -640,6 +681,14 @@
                             "caption": "Show value axes"
                         }
                     ]
+                },
+                {
+                    "type": "NumberSpinner",
+                    "name": "ValueAxisSpacing",
+                    "caption": "Value axis spacing (0 = automatic)",
+                    "minimum": 0,
+                    "maximum": 120,
+                    "suffix": "px"
                 },
                 {
                     "type": "RowLayout",
@@ -700,7 +749,14 @@
                         {
                             "type": "SelectColor",
                             "name": "GridColor",
-                            "caption": "Grid color",
+                            "caption": "Horizontal grid line color",
+                            "allowTransparent": true,
+                            "transparentCaption": "Automatic (theme)"
+                        },
+                        {
+                            "type": "SelectColor",
+                            "name": "VerticalGridColor",
+                            "caption": "Vertical grid line color",
                             "allowTransparent": true,
                             "transparentCaption": "Automatic (theme)"
                         }
@@ -732,7 +788,7 @@
         {
             "code": 201,
             "icon": "error",
-            "caption": "Configure 1 to 8 unique numeric sources"
+            "caption": "Configure 1 to 32 unique numeric sources."
         },
         {
             "code": 202,

@@ -11,21 +11,23 @@ use Burki24\SymconModuleHelper\IPSViewHTMLPageHelper;
 use Burki24\SymconModuleHelper\ResponsiveVisualizationHelper;
 use Burki24\SymconModuleHelper\VisualizationAssetHelper;
 use Burki24\SymconModuleHelper\VisualizationThemeHelper;
-use SymconECharts\CandlestickData;
-use SymconECharts\EChartsAnimationDesign;
-use SymconECharts\EChartsArchiveQuery;
-use SymconECharts\EChartsAsset;
-use SymconECharts\EChartsBarPreview;
-use SymconECharts\EChartsBarPreviewForm;
-use SymconECharts\EChartsDataProtocol;
-use SymconECharts\EChartsDesignerSections;
-use SymconECharts\EChartsIPSViewBackground;
-use SymconECharts\EChartsIPSViewDesignForm;
-use SymconECharts\EChartsIPSViewTransport;
-use SymconECharts\EChartsSourceIdentity;
-use SymconECharts\EChartsStartupState;
-use SymconECharts\EChartsTransientRefresh;
-use SymconECharts\EChartsVariablePresentation;
+use eCharts\CandlestickData;
+use eCharts\EChartsAnimationDesign;
+use eCharts\EChartsArchivePeriodView;
+use eCharts\EChartsArchiveQuery;
+use eCharts\EChartsAsset;
+use eCharts\EChartsBarPreview;
+use eCharts\EChartsBarPreviewForm;
+use eCharts\EChartsDataProtocol;
+use eCharts\EChartsDesignerSections;
+use eCharts\EChartsIPSViewBackground;
+use eCharts\EChartsIPSViewDesignForm;
+use eCharts\EChartsIPSViewTransport;
+use eCharts\EChartsSliderSize;
+use eCharts\EChartsSourceIdentity;
+use eCharts\EChartsStartupState;
+use eCharts\EChartsTransientRefresh;
+use eCharts\EChartsVariablePresentation;
 
 require_once __DIR__ . '/../libs/helper/ConfigurationFormHelper.php';
 require_once __DIR__ . '/../libs/helper/DataFlowHelper.php';
@@ -42,7 +44,9 @@ require_once __DIR__ . '/../libs/EChartsDataProtocol.php';
 require_once __DIR__ . '/../libs/EChartsDesignerSections.php';
 require_once __DIR__ . '/../libs/EChartsIPSViewBackground.php';
 require_once __DIR__ . '/../libs/EChartsIPSViewDesignForm.php';
+require_once __DIR__ . '/../libs/EChartsArchivePeriodView.php';
 require_once __DIR__ . '/../libs/EChartsIPSViewTransport.php';
+require_once __DIR__ . '/../libs/EChartsSliderSize.php';
 require_once __DIR__ . '/../libs/EChartsSourceIdentity.php';
 require_once __DIR__ . '/../libs/EChartsStartupState.php';
 require_once __DIR__ . '/../libs/EChartsTransientRefresh.php';
@@ -53,14 +57,15 @@ require_once __DIR__ . '/CandlestickPreview.php';
 class EChartsCandlestick extends IPSModuleStrict
 {
     use \Burki24\SymconModuleHelper\DebugFlowHelper;
-    use \SymconECharts\EChartsDebugFlow;
+    use \eCharts\EChartsDebugFlow;
 
     use ConfigurationFormHelper;
     use DataFlowHelper;
     use EChartsAnimationDesign;
     use EChartsBarPreviewForm;
-    use SymconECharts\CandlestickPreview;
+    use eCharts\CandlestickPreview;
     use EChartsIPSViewDesignForm;
+    use EChartsArchivePeriodView;
     use EChartsIPSViewTransport;
     use EChartsTransientRefresh;
     use IPSViewHTMLPageHelper;
@@ -77,6 +82,8 @@ class EChartsCandlestick extends IPSModuleStrict
     private const STATUS_PARENT_MISSING = 203;
     private const STATUS_GATEWAY_FAILED = 204;
     private const DESIGN_DEFAULTS = [
+        'EnablePeriodSelection'    => false,
+        'ZoomSliderSize'           => 0,
         'EChartsTheme'             => 'auto', 'Orientation' => 'vertical', 'ShowTooltip' => true,
         'ShowGrid'                 => true, 'ShowAxisLabels' => true, 'CandleWidth' => 40, 'BorderWidth' => 2, 'CandleOpacityPercent' => 70,
         'TitleFontSizePercent'     => 100, 'AxisFontSizePercent' => 100, 'TitleColor' => -1, 'AxisColor' => -1, 'BorderColor' => -1,
@@ -123,6 +130,7 @@ class EChartsCandlestick extends IPSModuleStrict
                 }
                 $this->RegisterAnimationProperties($prefix, true, 350, 500);
             }
+            $this->RegisterChartBackgroundProperties();
             $this->RegisterIPSViewHTMLPageProperties();
             $this->RegisterEChartsIPSViewTransport();
             $this->RegisterPropertyBoolean('IPSViewUseTileDesign', true);
@@ -224,7 +232,7 @@ class EChartsCandlestick extends IPSModuleStrict
                     $fields[] = $prefix . $name;
                 }
             }
-            return $debugFlowResult = $this->EncodeConfigurationForm($this->WithBarPreviewForm($form, 'ECCA', $fields));
+            return $debugFlowResult = $this->EncodeChartDesignerForm(__DIR__, $this->WithBarPreviewForm($form, 'ECCA', $fields));
         } catch (\Throwable $debugFlowException) {
             $debugFlowFailed = true;
             $this->DebugFlowException(__FUNCTION__, __LINE__, $debugFlowException);
@@ -264,40 +272,6 @@ class EChartsCandlestick extends IPSModuleStrict
             if (!$this->HandleIPSViewHTMLPageAction($Ident, $Value)) {
                 throw new InvalidArgumentException('Unknown action: ' . $Ident);
             }
-        } catch (\Throwable $debugFlowException) {
-            $debugFlowFailed = true;
-            $this->DebugFlowException(__FUNCTION__, __LINE__, $debugFlowException);
-            throw $debugFlowException;
-        } finally {
-            $this->DebugFlowEnd(__FUNCTION__, __LINE__, $debugFlowResult, $debugFlowFailed, true);
-        }
-    }
-
-    public function CopyTileDesignToIPSView(): void
-    {
-        $debugFlowResult = null;
-        $debugFlowFailed = false;
-        $this->DebugFlowStart(__FUNCTION__, __LINE__);
-        try {
-            foreach (self::DESIGN_DEFAULTS as $name => $default) {
-                $value = match (gettype($default)) {
-                    'boolean' => $this->ReadPropertyBoolean($name),
-                    'integer' => $this->ReadPropertyInteger($name),
-                    default   => $this->ReadPropertyString($name)
-                };
-                IPS_SetProperty($this->InstanceID, 'IPSView' . $name, $value);
-            }
-            foreach (['AnimationEnabled', 'AnimationDuration', 'AnimationDurationUpdate', 'AnimationEasing',
-                'AnimationEasingUpdate', 'AnimationDelay', 'AnimationDelayUpdate'] as $name) {
-                $value = match ($name) {
-                    'AnimationEnabled'                         => $this->ReadPropertyBoolean($name),
-                    'AnimationEasing', 'AnimationEasingUpdate' => $this->ReadPropertyString($name),
-                    default                                    => $this->ReadPropertyInteger($name)
-                };
-                IPS_SetProperty($this->InstanceID, 'IPSView' . $name, $value);
-            }
-            IPS_SetProperty($this->InstanceID, 'IPSViewUseTileDesign', false);
-            IPS_ApplyChanges($this->InstanceID);
         } catch (\Throwable $debugFlowException) {
             $debugFlowFailed = true;
             $this->DebugFlowException(__FUNCTION__, __LINE__, $debugFlowException);
@@ -385,7 +359,9 @@ class EChartsCandlestick extends IPSModuleStrict
             return $debugFlowResult = $this->HandleEChartsIPSViewRequest(
                 $JSONString,
                 self::DATA_ID_FROM_PARENT,
-                fn (): array => $this->BuildVisualizationState(true)
+                fn (array $payload): array => $this->BuildArchivePeriodView($payload),
+                $this->EChartsPeriodSelectionEnabled(false),
+                true
             );
         } catch (\Throwable $debugFlowException) {
             $debugFlowFailed = true;
@@ -457,24 +433,25 @@ class EChartsCandlestick extends IPSModuleStrict
     /** @param array<string,mixed> $values */
     protected function BarPreviewSvg(array $values, bool $ipsView): string
     {
-        return $this->CandlestickPreviewSvg($values, $ipsView);
+        return $this->WithArchivePeriodPreview($this->CandlestickPreviewSvg($values, $ipsView), $values, $ipsView);
     }
 
-    private function GetCandlestickDataForOutput(bool $ipsView): string
+    private function GetCandlestickDataForOutput(bool $ipsView, string $period = ''): string
     {
         $error = $this->GetConfigurationError();
         if ($error !== null) {
-            $this->WriteAttributeString('LastError', $error['Message']);
-            $this->DebugEChartsSetStatus($error['Status']);
+            $this->SetViewError($error['Message']);
+            $this->SetViewStatus($error['Status']);
             throw new RuntimeException($error['Message']);
         }
         if (!$this->HasActiveParent()) {
-            $this->DebugEChartsSetStatus(self::STATUS_PARENT_MISSING);
+            $this->SetViewStatus(self::STATUS_PARENT_MISSING);
             throw new RuntimeException('No active EChartsGateway is connected.');
         }
         $sources = $this->GetValidatedSources();
-        $query = $this->ResolveTimeQuery();
-        $range = ['key'    => $this->ReadPropertyString('Range'), 'startTimestamp' => $query['StartTimestamp'],
+        $rangeKey = $period === '' ? $this->ReadPropertyString('Range') : $period;
+        $query = $this->ResolveTimeQuery(['Range' => $rangeKey]);
+        $range = ['key'    => $rangeKey, 'startTimestamp' => $query['StartTimestamp'],
             'endTimestamp' => $query['EndTimestamp'], 'timezone' => date_default_timezone_get()];
         if ($range['key'] === 'absolute') {
             $range += ['requestedStartTimestamp' => $query['RequestedStartTimestamp'],
@@ -496,12 +473,14 @@ class EChartsCandlestick extends IPSModuleStrict
                 foreach ($sources as $source) {
                     $data[$source['VariableID']] = CandlestickData::Summarize($points[$source['VariableID']] ?? [], $query);
                 }
-                $this->SetBuffer('CandlestickCache', json_encode(['key' => $key, 'expires' => $this->CurrentTimestamp() + 60,
-                    'data'                                              => $data], JSON_THROW_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION));
+                if ($period === '') {
+                    $this->SetBuffer('CandlestickCache', json_encode(['key' => $key, 'expires' => $this->CurrentTimestamp() + 60,
+                        'data'                                              => $data], JSON_THROW_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION));
+                }
             }
         } catch (Throwable $exception) {
-            $this->WriteAttributeString('LastError', $exception->getMessage());
-            $this->DebugEChartsSetStatus(self::STATUS_GATEWAY_FAILED);
+            $this->SetViewError($exception->getMessage());
+            $this->SetViewStatus(self::STATUS_GATEWAY_FAILED);
             throw $exception;
         }
         $panels = [];
@@ -515,8 +494,8 @@ class EChartsCandlestick extends IPSModuleStrict
             $panels[] = ['id' => (string) $source['VariableID'], 'variableID' => $source['VariableID'],
                 'sourceLabel' => $source['Label'], 'unit' => $source['Unit'], 'data' => $items];
         }
-        $this->WriteAttributeString('LastError', '');
-        $this->DebugEChartsSetStatus(IS_ACTIVE);
+        $this->SetViewError('');
+        $this->SetViewStatus(IS_ACTIVE);
         return json_encode(
             ['schemaVersion'     => 1, 'family' => 'candlestick', 'theme' => $this->EffectiveTheme($ipsView),
                 'candlestick'    => ['title' => $this->ReadPropertyString('Title'), 'unit' => $sources[0]['Unit'],
@@ -532,7 +511,7 @@ class EChartsCandlestick extends IPSModuleStrict
     private function RenderCandlestickHTMLPage(bool $ipsView): string
     {
         $startup = EChartsStartupState::Startup($this->BuildVisualizationState($ipsView));
-        return $this->RenderVisualizationHTMLPage($ipsView, [
+        $html = $this->RenderChartPage($ipsView, [
             'language'           => $this->NormalizeHelperTranslationLanguage($this->ResolveHelperTranslationLanguage()),
             'title'              => 'ECharts Candlestick',
             'visualizationTheme' => $this->VisualizationThemeCSS() . "\n\n"
@@ -564,13 +543,14 @@ class EChartsCandlestick extends IPSModuleStrict
                 'compressedStateGzipBase64' => $startup['compressedStateGzipBase64']
             ],
             'replacements' => [
-                '{{ECHARTS_SCRIPT}}'           => EChartsAsset::CandlestickJavaScript(),
+                '{{ECHARTS_SCRIPT}}'           => EChartsAsset::RendererScript('candlestick', $ipsView),
                 '{{ECHARTS_THEME_SCRIPT}}'     => EChartsAsset::ThemeJavaScript(),
                 '{{ECHARTS_DESIGN_SCRIPT}}'    => EChartsAsset::DesignJavaScript() . "\n" . EChartsAsset::StartupJavaScript(),
                 '{{ECHARTS_ZOOM_SCRIPT}}'      => EChartsAsset::ZoomJavaScript(),
                 '{{IPSVIEW_TRANSPORT_SCRIPT}}' => $ipsView ? $this->EChartsIPSViewTransportJavaScript() : ''
             ]
         ]);
+        return $this->WithEChartsPeriodSelection($html, $ipsView, $this->ArchivePeriodChoices($ipsView));
     }
 
     private function Initialize(): void
@@ -601,6 +581,9 @@ class EChartsCandlestick extends IPSModuleStrict
     /** @return array{Status:int,Message:string}|null */
     private function GetConfigurationError(): ?array
     {
+        if (!$this->ChartBackgroundColorsAreValid()) {
+            return ['Status' => self::STATUS_CONFIGURATION_INVALID, 'Message' => 'Select a valid chart background color.'];
+        }
         try {
             $this->GetValidatedSources();
         } catch (Throwable $exception) {
@@ -624,6 +607,16 @@ class EChartsCandlestick extends IPSModuleStrict
                 ? $this->Translate($exception->getMessage()) : $exception->getMessage()];
         }
         return null;
+    }
+
+    private function SupportsArchivePeriod(string $period): bool
+    {
+        try {
+            $query = $this->ResolveTimeQuery(['Range' => $period]);
+            return !$query['Empty'];
+        } catch (InvalidArgumentException) {
+            return false;
+        }
     }
 
     /** Pure shared planning for saved settings and read-only preview drafts. */
@@ -749,7 +742,7 @@ class EChartsCandlestick extends IPSModuleStrict
     }
 
     /** @return array<string,mixed> */
-    private function BuildVisualizationState(bool $ipsView = false): array
+    private function BuildVisualizationState(bool $ipsView = false, string $period = ''): array
     {
         $configurationError = $this->GetConfigurationError();
         if ($configurationError !== null) {
@@ -764,16 +757,16 @@ class EChartsCandlestick extends IPSModuleStrict
             return $this->ErrorState('Connect an active EChartsGateway.');
         }
         try {
-            $chart = json_decode($this->GetCandlestickDataForOutput($ipsView), true, 512, JSON_THROW_ON_ERROR);
+            $chart = json_decode($this->GetCandlestickDataForOutput($ipsView, $period), true, 512, JSON_THROW_ON_ERROR);
         } catch (Throwable $exception) {
             $this->DebugFlowException(__FUNCTION__, __LINE__, $exception);
-            if (str_contains($this->ReadAttributeString('LastError'), 'too dense')) {
+            if (str_contains($this->GetViewError(), 'too dense')) {
                 return $this->ErrorState('The archive is too dense. Choose a shorter time range.');
             }
-            return $this->ErrorState($this->ReadAttributeString('LastError') === 'Candlestick requires standard archive variables, not counters.'
+            return $this->ErrorState($this->GetViewError() === 'Candlestick requires standard archive variables, not counters.'
                 ? 'Candlestick requires standard archive variables, not counters.' : 'The Candlestick values could not be loaded.');
         }
-        return ['schemaVersion' => 1, 'family' => 'candlestick', 'status' => 'ready', 'chart' => $chart, 'error' => null];
+        return ['schemaVersion' => 1, 'family' => 'candlestick', 'status' => 'ready', 'chart' => $this->WithChartBackground($chart, $ipsView), 'error' => null];
     }
 
     /** @return array<string,mixed> */
@@ -841,7 +834,8 @@ class EChartsCandlestick extends IPSModuleStrict
 
     private function IsValidDesign(string $prefix): bool
     {
-        if (!EChartsAsset::IsSupportedTheme($this->ReadPropertyString($prefix . 'EChartsTheme')) || !$this->AnimationIsValid($prefix)
+        if (!EChartsSliderSize::IsValid($this->ReadPropertyInteger($prefix . 'ZoomSliderSize'))
+            || !EChartsAsset::IsSupportedTheme($this->ReadPropertyString($prefix . 'EChartsTheme')) || !$this->AnimationIsValid($prefix)
             || !in_array($this->ReadPropertyString($prefix . 'Orientation'), ['vertical', 'horizontal'], true)
             || !in_array($this->ReadPropertyString($prefix . 'BorderType'), ['solid', 'dashed', 'dotted'], true)
             || !in_array($this->ReadPropertyString($prefix . 'GridLineType'), ['solid', 'dashed', 'dotted'], true)
@@ -945,8 +939,7 @@ class EChartsCandlestick extends IPSModuleStrict
                 ...$this->IPSViewHTMLPageFormItems('Creates a standalone WebContent variable for IPSView.'),
                 EChartsIPSViewBackground::FormRow(),
                 ['type' => 'CheckBox', 'name' => 'IPSViewUseTileDesign', 'caption' => 'Use Tile design'],
-                ['type'       => 'Button', 'caption' => 'Copy Tile design to IPSView and edit independently',
-                    'onClick' => 'ECCA_CopyTileDesignToIPSView($id); return "MESSAGE:Tile design copied to IPSView.";'],
+                ['type'       => 'Button', 'caption' => 'Copy Tile design to IPSView and edit independently'],
                 ['type'        => 'ExpansionPanel', 'caption' => 'Independent IPSView designer',
                     'expanded' => false, 'items' => $rows]
             ]];

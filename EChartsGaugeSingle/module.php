@@ -13,17 +13,17 @@ use Burki24\SymconModuleHelper\ResponsiveVisualizationHelper;
 use Burki24\SymconModuleHelper\SVGPreviewHelper;
 use Burki24\SymconModuleHelper\VisualizationAssetHelper;
 use Burki24\SymconModuleHelper\VisualizationThemeHelper;
-use SymconECharts\EChartsAnimationDesign;
-use SymconECharts\EChartsAsset;
-use SymconECharts\EChartsDataProtocol;
-use SymconECharts\EChartsGaugeDesign;
-use SymconECharts\EChartsGaugeSinglePreview;
-use SymconECharts\EChartsIPSViewBackground;
-use SymconECharts\EChartsIPSViewDesignForm;
-use SymconECharts\EChartsIPSViewTransport;
-use SymconECharts\EChartsSvgPath;
-use SymconECharts\EChartsTransientRefresh;
-use SymconECharts\EChartsVariablePresentation;
+use eCharts\EChartsAnimationDesign;
+use eCharts\EChartsAsset;
+use eCharts\EChartsDataProtocol;
+use eCharts\EChartsGaugeDesign;
+use eCharts\EChartsGaugeSinglePreview;
+use eCharts\EChartsIPSViewBackground;
+use eCharts\EChartsIPSViewDesignForm;
+use eCharts\EChartsIPSViewTransport;
+use eCharts\EChartsSvgPath;
+use eCharts\EChartsTransientRefresh;
+use eCharts\EChartsVariablePresentation;
 
 require_once __DIR__ . '/../libs/helper/ConfigurationFormHelper.php';
 require_once __DIR__ . '/../libs/helper/DataFlowHelper.php';
@@ -47,8 +47,8 @@ require_once __DIR__ . '/GaugePreview.php';
 class EChartsGaugeSingle extends IPSModuleStrict
 {
     use \Burki24\SymconModuleHelper\DebugFlowHelper;
-    use \SymconECharts\EChartsDebugFlow;
-    use \SymconECharts\EChartsJSLiveTarget;
+    use \eCharts\EChartsDebugFlow;
+    use \eCharts\EChartsJSLiveTarget;
 
     use ConfigurationFormHelper;
     use EChartsAnimationDesign;
@@ -312,6 +312,7 @@ class EChartsGaugeSingle extends IPSModuleStrict
             foreach (self::DESIGN_SCALE_PROPERTIES as $propertyName) {
                 $this->RegisterPropertyInteger($propertyName, self::DESIGN_SCALE_DEFAULT);
             }
+            $this->RegisterChartBackgroundProperties();
             $this->RegisterIPSViewHTMLPageProperties();
             $this->RegisterEChartsIPSViewTransport();
             $this->RegisterPropertyBoolean('IPSViewUseTileDesign', true);
@@ -444,7 +445,15 @@ class EChartsGaugeSingle extends IPSModuleStrict
                 $this->BuildIPSViewGaugePreviewSvg()
             );
 
-            return $debugFlowResult = $this->EncodeConfigurationForm($this->WithIPSViewDesignFormState($form, 'ECGS'));
+            $ipsViewAction = $this->IPSViewGaugePreviewFormAction();
+            $form = $this->WithIPSViewDesignFormState(
+                $form,
+                'ECGS',
+                $this->GaugePreviewFormAction() . ' ' . $ipsViewAction,
+                $ipsViewAction
+            );
+
+            return $debugFlowResult = $this->EncodeChartDesignerForm(__DIR__, $form);
         } catch (\Throwable $debugFlowException) {
             $debugFlowFailed = true;
             $this->DebugFlowException(__FUNCTION__, __LINE__, $debugFlowException);
@@ -465,36 +474,6 @@ class EChartsGaugeSingle extends IPSModuleStrict
             }
 
             throw new InvalidArgumentException('Unknown action: ' . $Ident);
-        } catch (\Throwable $debugFlowException) {
-            $debugFlowFailed = true;
-            $this->DebugFlowException(__FUNCTION__, __LINE__, $debugFlowException);
-            throw $debugFlowException;
-        } finally {
-            $this->DebugFlowEnd(__FUNCTION__, __LINE__, $debugFlowResult, $debugFlowFailed, true);
-        }
-    }
-
-    public function CopyTileDesignToIPSView(): void
-    {
-        $debugFlowResult = null;
-        $debugFlowFailed = false;
-        $this->DebugFlowStart(__FUNCTION__, __LINE__);
-        try {
-            foreach (self::GaugeDesignPropertyNames() as $propertyName) {
-                $sourceName = $propertyName;
-                $targetName = self::IPSVIEW_PROPERTY_PREFIX . $propertyName;
-                if (array_key_exists($propertyName, self::IPSVIEW_STRING_DESIGN_DEFAULTS)) {
-                    IPS_SetProperty($this->InstanceID, $targetName, $this->ReadPropertyString($sourceName));
-                } elseif (array_key_exists($propertyName, self::IPSVIEW_FLOAT_DESIGN_DEFAULTS)) {
-                    IPS_SetProperty($this->InstanceID, $targetName, $this->ReadPropertyFloat($sourceName));
-                } elseif (array_key_exists($propertyName, self::IPSVIEW_BOOLEAN_DESIGN_DEFAULTS)) {
-                    IPS_SetProperty($this->InstanceID, $targetName, $this->ReadPropertyBoolean($sourceName));
-                } else {
-                    IPS_SetProperty($this->InstanceID, $targetName, $this->ReadPropertyInteger($sourceName));
-                }
-            }
-            IPS_SetProperty($this->InstanceID, 'IPSViewUseTileDesign', false);
-            IPS_ApplyChanges($this->InstanceID);
         } catch (\Throwable $debugFlowException) {
             $debugFlowFailed = true;
             $this->DebugFlowException(__FUNCTION__, __LINE__, $debugFlowException);
@@ -554,7 +533,8 @@ class EChartsGaugeSingle extends IPSModuleStrict
                         (int) ($values['IPSViewBackgroundColor']
                             ?? $this->ReadPropertyInteger('IPSViewBackgroundColor')),
                         (int) ($values['IPSViewBackgroundOpacityPercent']
-                            ?? $this->ReadPropertyInteger('IPSViewBackgroundOpacityPercent'))
+                            ?? $this->ReadPropertyInteger('IPSViewBackgroundOpacityPercent')),
+                        $this->EffectiveChartBackgroundColor(true, $values)
                     )
                 ))
             );
@@ -608,6 +588,7 @@ class EChartsGaugeSingle extends IPSModuleStrict
                     (string) ($values['GaugePreset'] ?? self::PRESET_SIMPLE),
                     (string) ($values['EChartsTheme'] ?? EChartsAsset::THEME_AUTO),
                     $this->GaugeStyleFromFormValues($values, $minimum, $maximum)
+                        + ['chartBackgroundColor' => $this->EffectiveChartBackgroundColor(false, $values)]
                 ))
             );
         } catch (\Throwable $debugFlowException) {
@@ -969,7 +950,7 @@ class EChartsGaugeSingle extends IPSModuleStrict
         if ($this->HasJSLiveImport()) {
             return $this->RenderJSLiveImportPage($ipsView);
         }
-        return $this->RenderVisualizationHTMLPage($ipsView, [
+        return $this->RenderChartPage($ipsView, [
             'language'           => $this->NormalizeHelperTranslationLanguage(
                 $this->ResolveHelperTranslationLanguage()
             ),
@@ -997,7 +978,7 @@ class EChartsGaugeSingle extends IPSModuleStrict
                 'ipsViewTransport'  => $ipsView ? $this->EChartsIPSViewTransportOptions() : null
             ],
             'replacements'       => [
-                '{{ECHARTS_SCRIPT}}'           => EChartsAsset::JavaScript(),
+                '{{ECHARTS_SCRIPT}}'           => EChartsAsset::RendererScript('gauge', $ipsView),
                 '{{ECHARTS_THEME_SCRIPT}}'     => EChartsAsset::ThemeJavaScript(),
                 '{{ECHARTS_DESIGN_SCRIPT}}'    => EChartsAsset::DesignJavaScript(),
                 '{{IPSVIEW_TRANSPORT_SCRIPT}}' => $ipsView ? $this->EChartsIPSViewTransportJavaScript() : ''
@@ -1102,7 +1083,7 @@ class EChartsGaugeSingle extends IPSModuleStrict
     {
         $fieldNames = [
             'SourceVariableID', 'UseVariablePresentation', 'Minimum', 'Maximum', 'Title', 'TitlePosition',
-            'Unit', 'Decimals',
+            'Unit', 'Decimals', 'ChartBackgroundColor',
             'GaugePreset', 'EChartsTheme', 'PointerShape', 'CustomPointerSVG',
             'CustomPointerPivotMode', 'CustomPointerPivotXPercent', 'CustomPointerPivotYPercent',
             'AnchorShape', 'CustomAnchorSVG', 'AnchorColorMode', 'AnchorColor', 'AnchorBorderColor',
@@ -1219,8 +1200,7 @@ class EChartsGaugeSingle extends IPSModuleStrict
                 ],
                 [
                     'type'    => 'Button',
-                    'caption' => 'Copy Tile design to IPSView and edit independently',
-                    'onClick' => 'ECGS_CopyTileDesignToIPSView($id); return "MESSAGE:Tile design copied to IPSView.";'
+                    'caption' => 'Copy Tile design to IPSView and edit independently'
                 ],
                 [
                     'type'     => 'ExpansionPanel',
@@ -1256,7 +1236,7 @@ class EChartsGaugeSingle extends IPSModuleStrict
     {
         $fieldNames = [
             'SourceVariableID', 'UseVariablePresentation', 'Minimum', 'Maximum', 'Title', 'Unit', 'Decimals',
-            'IPSViewUseTileDesign',
+            'IPSViewUseTileDesign', 'ChartBackgroundColor', 'IPSViewChartBackgroundColor',
             'IPSViewAdaptToBackground', 'IPSViewBackgroundColor', 'IPSViewBackgroundOpacityPercent',
             ...self::GaugeDesignPropertyNames(),
             ...array_map(
@@ -1452,7 +1432,7 @@ class EChartsGaugeSingle extends IPSModuleStrict
             $language,
             $preset,
             $theme,
-            $style
+            $style + ['chartBackgroundColor' => $this->EffectiveChartBackgroundColor(false)]
         );
     }
 
@@ -1514,6 +1494,9 @@ class EChartsGaugeSingle extends IPSModuleStrict
      */
     private function GetConfigurationError(): ?array
     {
+        if (!$this->ChartBackgroundColorsAreValid()) {
+            return ['Status' => self::STATUS_DESIGN_INVALID, 'Message' => 'Select a valid chart background color.'];
+        }
         if (!$this->AnimationIsValid()
             || ($this->IsIPSViewHTMLPageEnabled()
                 && !$this->ReadPropertyBoolean('IPSViewUseTileDesign')
@@ -2027,7 +2010,8 @@ class EChartsGaugeSingle extends IPSModuleStrict
                 $this->GaugeStyleFromFormValues($values, $configuration['minimum'], $configuration['maximum']),
                 $this->ReadPropertyBoolean('IPSViewAdaptToBackground'),
                 $this->ReadPropertyInteger('IPSViewBackgroundColor'),
-                $this->ReadPropertyInteger('IPSViewBackgroundOpacityPercent')
+                $this->ReadPropertyInteger('IPSViewBackgroundOpacityPercent'),
+                $this->EffectiveChartBackgroundColor(true)
             )
         );
     }
@@ -2408,7 +2392,7 @@ class EChartsGaugeSingle extends IPSModuleStrict
             'family'        => 'gauge',
             'variant'       => 'single',
             'status'        => 'ready',
-            'chart'         => $chart,
+            'chart'         => $this->WithChartBackground($chart, $ipsView),
             'error'         => null
         ];
     }

@@ -70,9 +70,7 @@ declare(strict_types=1);
         count(array_filter($visibility, static fn (array $update): bool => $update['Value'] === true)) === 5,
         'Selecting gradient must immediately reveal its five settings.'
     );
-    $GLOBALS['symconTestCopyTarget'] = $bar;
-    $bar->CopyTileDesignToIPSView();
-    unset($GLOBALS['symconTestCopyTarget']);
+    copyDesignAndApplyForm($bar);
     assertGatewayGauge(str_contains($bar->GetIPSViewHTML(), '"colorMinimum":-0.25')
         && str_contains($bar->GetIPSViewHTML(), '"colorMaximum":100.5'), 'Copying designs must not round gradient bounds.');
     $bar->SetTestProperty('IPSViewUseTileDesign', true);
@@ -111,7 +109,7 @@ declare(strict_types=1);
         'A 16-percent preview must end at the 16-percent ramp color, not restart a complete red-to-green ramp.'
     );
     assertGatewayGauge(
-        \SymconECharts\EChartsBarPreview::RampColor(127.5, 0.0, 255.0, [0xFF0000, 0xFFFF00, 0x00FF00]) === '#ffff00',
+        \eCharts\EChartsBarPreview::RampColor(127.5, 0.0, 255.0, [0xFF0000, 0xFFFF00, 0x00FF00]) === '#ffff00',
         'The shared ramp must retain the LQI midpoint without rounding the range.'
     );
     foreach (['', 'IPSView'] as $prefix) {

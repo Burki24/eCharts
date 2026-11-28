@@ -5,7 +5,7 @@ Die Anteile können Tagesmittelwerte, Tagesverbrauch oder Zustandsdauern sein.
 Das Modul liest ausschließlich: Quellen, Archivaufzeichnung und Archivwerte
 werden weder verändert noch automatisch ergänzt.
 
-Installation: Im **Symcon-Modulstore** nach **SymconECharts** suchen.
+Installation: Im **Symcon-Modulstore** nach **eCharts** suchen.
 [Voraussetzungen und Einrichtung](../README.md#installation-und-erstes-diagramm)
 (IP-Symcon 9.0/9.1, PHP 8.5, gemeinsames Gateway).
 Alle technischen Felder, Standardwerte und Quellenparameter stehen in der
@@ -159,6 +159,7 @@ mit ausdrücklich unbekanntem Zeitanteil.
 ## Kachel, IPSView und Vorschau
 
 Beide Designer bieten Theme, Tooltip, Legende, Wochenbeginn und Tagesnummern.
+Die Legendenfarbe steuert Beschriftung und Seitennavigation unabhängig von den Kalenderachsen.
 Kreisradius (20–90 %), Donut-Innenradius (0–80 % des Außenradius), Startwinkel,
 Drehrichtung, Segment- und Zellrahmen sowie Zelldeckkraft sind einstellbar.
 Titel, Kalenderbeschriftung und Werte besitzen eigene Schriftgrößen und Farben.
@@ -175,8 +176,8 @@ bleiben im gesamten Monat gleich. Animation einschließlich Dauer und
 Bewegungskurve ist einstellbar.
 
 IPSView erbt zunächst das Kacheldesign. Nach Deaktivieren der Vererbung lässt
-es sich unabhängig gestalten; ein Kopierknopf übernimmt das gespeicherte
-Kacheldesign als Ausgangspunkt. Die optionale Stringvariable
+es sich unabhängig gestalten. Der Kopierknopf übernimmt die aktuellen Kachelfelder
+in die IPSView-Vorschau. Mit **Übernehmen** speicherst Du das Design. Die optionale Stringvariable
 `IPSViewCalendarPie` enthält das WebContent-Dokument für ein IPSView-HTML-Widget
 und wird nicht bedient. Die Daten werden minütlich aktualisiert.
 
@@ -211,7 +212,7 @@ oder das Gateway. Alle aufgeführten Argumente beim Symcon-Aufruf übergeben.
 
 | Signatur | Rückgabe und Wirkung |
 | --- | --- |
-| `ECCP_CopyTileDesignToIPSView(int $InstanzID): void` | Kopiert das gespeicherte Kacheldesign, ersetzt die unabhängigen IPSView-Designwerte und wendet sie an; aktiviert unabhängiges Design. |
+| `ECCP_CopyTileDesignToIPSView(int $InstanzID): void` | Überträgt die gespeicherten Kachelwerte in den geöffneten IPSView-Formularentwurf. Erst **Übernehmen** speichert die Kopie. |
 | `ECCP_GetCalendarPieData(int $InstanzID): string` | Liest das reguläre konfigurierte Diagrammmodell als JSON; keine Änderung von Quellen oder Archivwerten. |
 | `ECCP_GetCalendarPieDiagnostic(int $InstanzID): string` | JSON-Momentaufnahme der Konfigurationsprüfung und letzten Fehlermeldung; kein Nachweis einer erfolgreichen Datenabfrage. |
 | `ECCP_GetIPSViewHTML(int $InstanzID): string` | Vollständiges HTML-Dokument für IPSView; der Rückgabewert bestätigt keine Anzeige in einem Client. |

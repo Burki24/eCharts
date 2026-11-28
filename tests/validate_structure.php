@@ -82,6 +82,7 @@ $requiredFiles = [
     'libs/EChartsVariablePresentation.php',
     'libs/echarts-design.js',
     'libs/echarts-pattern.js',
+    'libs/EChartsSvgInput.php',
     'libs/EChartsSvgImage.php',
     'libs/EChartsSvgPath.php',
     'libs/echarts/6.1.0/echarts.gauge.min.js',
@@ -507,7 +508,7 @@ if ($helperSync !== null) {
 
 $expectedModules = [
     'EChartsBarCategory', 'EChartsBarHistory', 'EChartsBarPolar', 'EChartsBarWaterfall', 'EChartsBoxplot', 'EChartsCalendar', 'EChartsCalendarPie', 'EChartsCandlestick', 'EChartsFunnel', 'EChartsGateway', 'EChartsGaugeChronograph', 'EChartsGaugeMulti',
-    'EChartsGaugeSingle', 'EChartsGaugeTacho', 'EChartsGraph', 'EChartsGraphZ2M', 'EChartsHeatmap', 'EChartsParallel', 'EChartsPictorialBar', 'EChartsPie', 'EChartsProgress', 'EChartsRadar', 'EChartsRadarHistory', 'EChartsSankey', 'EChartsScatter', 'EChartsStateTimeline', 'EChartsSunburst', 'EChartsThemeRiver', 'EChartsTimeSeries', 'EChartsTree', 'EChartsTreeSystemHealth', 'EChartsTreemap'
+    'EChartsGaugeSingle', 'EChartsGaugeTacho', 'EChartsGaugeWind', 'EChartsGraph', 'EChartsGraphZ2M', 'EChartsHeatmap', 'EChartsParallel', 'EChartsPictorialBar', 'EChartsPie', 'EChartsProgress', 'EChartsRadar', 'EChartsRadarHistory', 'EChartsSankey', 'EChartsScatter', 'EChartsStateTimeline', 'EChartsSunburst', 'EChartsThemeRiver', 'EChartsTimeSeries', 'EChartsTree', 'EChartsTreeSystemHealth', 'EChartsTreemap'
 ];
 $discoveredModules = [];
 foreach (glob($root . '/*/module.json') ?: [] as $modulePath) {
@@ -654,8 +655,8 @@ if ($runner === false) {
 }
 
 if ($errors !== []) {
-    fwrite(STDERR, "SymconECharts structure validation failed:\n - " . implode("\n - ", $errors) . "\n");
+    fwrite(STDERR, "eCharts structure validation failed:\n - " . implode("\n - ", $errors) . "\n");
     exit(1);
 }
 
-echo 'SymconECharts repository structure is valid (' . count($discoveredModules) . " modules).\n";
+echo 'eCharts repository structure is valid (' . count($discoveredModules) . " modules).\n";

@@ -1,6 +1,8 @@
 {
     "translations": {
         "de": {
+            "Chart background": "Diagrammhintergrund",
+            "Select a valid chart background color.": "Bitte eine gültige Farbe für den Diagrammhintergrund wählen.",
             "One shared EChartsGateway is sufficient for all ECharts chart instances. Select the existing gateway when adding further charts.": "Ein gemeinsames EChartsGateway genügt für alle ECharts-Diagramminstanzen. Für weitere Diagramme das vorhandene Gateway auswählen.",
             "Title": "Titel",
             "Scatter plot (optional bubble size)": "Streudiagramm (optional mit Blasengröße)",
@@ -70,6 +72,7 @@
             "Automatic (Symcon design)": "Automatisch (Symcon-Design)",
             "Show grid": "Raster anzeigen",
             "Enable X/Y zoom": "X/Y-Zoom aktivieren",
+            "Slider thickness (0 = automatic)": "Reglerdicke (0 = automatisch)",
             "Enable area selection": "Bereichsauswahl aktivieren",
             "Select points": "Punkte auswählen",
             "Clear selection": "Auswahl aufheben",
@@ -108,6 +111,7 @@
             "Value font size": "Wertschriftgröße",
             "Point color": "Punktfarbe",
             "Title color": "Titelfarbe",
+            "Legend color": "Legendenfarbe",
             "Axis color": "Achsenfarbe",
             "Grid color": "Rasterfarbe",
             "Value color": "Wertfarbe",
@@ -150,7 +154,10 @@
             "The Scatter values could not be loaded.": "Die Scatter-Werte konnten nicht geladen werden.",
             "Scatter data could not be refreshed. Showing the last available values.": "Scatter-Daten konnten nicht aktualisiert werden. Die letzten verfügbaren Werte bleiben sichtbar.",
             "No common completed archive intervals.": "Keine gemeinsamen abgeschlossenen Archivintervalle vorhanden.",
-            "The selected range was truncated by the point budget.": "Der gewählte Zeitraum wurde durch das Punktbudget abgeschnitten."
+            "The selected range was truncated by the point budget.": "Der gewählte Zeitraum wurde durch das Punktbudget abgeschnitten.",
+            "Show period selection": "Zeitraumauswahl anzeigen",
+            "Period": "Zeitraum",
+            "This year": "Dieses Jahr"
         }
     }
 }

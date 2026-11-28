@@ -1,6 +1,8 @@
 {
     "translations": {
         "de": {
+            "Chart background": "Diagrammhintergrund",
+            "Select a valid chart background color.": "Bitte eine gültige Farbe für den Diagrammhintergrund wählen.",
             "One shared EChartsGateway is sufficient for all ECharts chart instances. When adding further charts, select the existing gateway instead of creating another one.": "Ein gemeinsames EChartsGateway genügt für alle ECharts-Diagramminstanzen. Bei weiteren Diagrammen das vorhandene Gateway auswählen, anstatt ein neues anzulegen.",
             "Source variable": "Quellvariable",
             "Use range, unit and decimal places from the source variable presentation": "Bereich, Einheit und Nachkommastellen aus der Darstellung der Quellvariable übernehmen",
@@ -233,7 +235,7 @@
             "The SVG background contains an invalid paint value.": "Der SVG-Hintergrund enthält einen ungültigen Farbwert.",
             "The SVG background contains an invalid transformation.": "Der SVG-Hintergrund enthält eine ungültige Transformation.",
             "The SVG background requires a finite viewBox with positive width and height.": "Der SVG-Hintergrund benötigt eine endliche viewBox mit positiver Breite und Höhe.",
-            "SVG background import requires the PHP DOM extension.": "Der SVG-Hintergrundimport benötigt die PHP-DOM-Erweiterung.",
+            "SVG import requires the PHP DOM extension.": "Der SVG-Import benötigt die PHP-DOM-Erweiterung.",
             "The SVG file exceeds the 128 KiB import limit.": "Die SVG-Datei überschreitet das Importlimit von 128 KiB.",
             "The selected file is not an SVG document.": "Die ausgewählte Datei ist kein SVG-Dokument.",
             "SVG document types and entities are not supported.": "SVG-Dokumenttypen und Entitäten werden nicht unterstützt.",

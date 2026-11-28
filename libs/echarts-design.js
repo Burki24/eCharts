@@ -71,6 +71,17 @@
         return Math.max(0, Math.min(100, percent)) / 100;
     }
 
+    function valueAxisSpacing(configured, automaticLimit, availableSpace, extraAxisCount) {
+        if (extraAxisCount <= 0) { return 0; }
+        var requested = Number.isInteger(configured) && configured >= 1 && configured <= 120
+            ? configured : automaticLimit;
+        return Math.min(requested, Math.max(0, availableSpace) / extraAxisCount);
+    }
+
+    function sliderSize(configured, automatic) {
+        return Number.isInteger(configured) && configured > 0 && configured <= 64 ? configured : automatic;
+    }
+
     function prefersReducedMotion() {
         return typeof global.matchMedia === 'function'
             && global.matchMedia('(prefers-reduced-motion: reduce)').matches === true;
@@ -141,6 +152,25 @@
         }
         chart.resize();
         return true;
+    }
+
+    // The IPSView root supplies color and opacity through its stylesheet. A child canvas must stay clear.
+    function chartBackground(bootstrap, model, themeColor, isRoot) {
+        if (bootstrap.mode === 'ipsview' && bootstrap.options && bootstrap.options.adaptToBackground === true) {
+            return isRoot ? '' : 'transparent';
+        }
+        var override = model.chartBackgroundColor;
+        if (typeof override !== 'string' || !/^#[0-9a-f]{6}$/i.test(override)) { override = ''; }
+        // A live design update can arrive without rebuilding the enclosing HTML page.
+        var page = global.document && global.document.documentElement;
+        if (page) {
+            var property = '--symc-chart-page-background';
+            var color = override || 'initial';
+            if (page.style.getPropertyValue(property) !== color) {
+                page.style.setProperty(property, color);
+            }
+        }
+        return override || themeColor;
     }
 
     function parseVisualizationState(message) {
@@ -277,10 +307,13 @@
         colorWithAlpha: colorWithAlpha,
         barOutlineStyle: barOutlineStyle,
         fontSizePercent: fontSizePercent,
+        valueAxisSpacing: valueAxisSpacing,
+        sliderSize: sliderSize,
         chartTitleLayout: chartTitleLayout,
         valueLabel: valueLabel,
         gaugeLabelOffsets: gaugeLabelOffsets,
         resizeChartIfNeeded: resizeChartIfNeeded,
+        chartBackground: chartBackground,
         parseVisualizationState: parseVisualizationState,
         createTransientFailureRetainer: createTransientFailureRetainer
     });

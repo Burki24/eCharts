@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use SymconECharts\EChartsDataProtocol;
+use eCharts\EChartsDataProtocol;
 
 if (!isset($gateway)) {
     passthru(PHP_BINARY . ' ' . escapeshellarg(__DIR__ . '/gateway_gauges.php') . ' --calendar-pie', $exitCode);
@@ -13,7 +13,7 @@ require_once dirname(__DIR__) . '/EChartsCalendarPie/module.php';
 // Complete circles need two half-arcs: rounding a tiny endpoint gap can otherwise erase a single-state day.
 foreach ([true, false] as $clockwise) {
     foreach ([0.0, 4.0] as $innerRadius) {
-        $path = SymconECharts\EChartsBarPreview::Sector(
+        $path = eCharts\EChartsBarPreview::Sector(
             20.0,
             30.0,
             $innerRadius,
@@ -38,7 +38,7 @@ foreach ([true, false] as $clockwise) {
             );
         }
     }
-    $quarter = SymconECharts\EChartsBarPreview::Sector(
+    $quarter = eCharts\EChartsBarPreview::Sector(
         20.0,
         30.0,
         0.0,
@@ -216,13 +216,10 @@ foreach ($defaults as $name => $default) {
     }
 }
 $translations = json_decode((string) file_get_contents(dirname(__DIR__) . '/EChartsCalendarPie/locale.json'), true, 512, JSON_THROW_ON_ERROR)['translations']['de'];
-$helperTranslations = json_decode((string) file_get_contents(dirname(__DIR__) . '/libs/helper/translations/IPSViewHTMLPageHelper.json'), true, 512, JSON_THROW_ON_ERROR);
 foreach (array_keys((new ReflectionMethod(EChartsCalendarPie::class, 'RendererTranslations'))->invoke($calendarPie)) as $key) {
     assertGatewayGauge(isset($translations[$key]), 'Missing German CalendarPie renderer text: ' . $key);
 }
-foreach ($helperTranslations['translations'] as $translation) {
-    $translations[$translation['en']] = $translation['de'];
-}
+$translations += designerGermanCaptions();
 $verifyCaptions = static function (array $entries) use (&$verifyCaptions, $translations): void
 {
     foreach ($entries as $key => $entry) {
@@ -336,7 +333,7 @@ $calendarPie->UpdateBarPreviewFromForm(json_encode(['DataMode' => 'states', 'Sta
     'States'                                                   => $definitions, 'Month' => '2026-09', 'EChartsTheme' => 'dark', 'UnknownColor' => -1], JSON_THROW_ON_ERROR));
 $autoUnknownSVG = base64_decode(substr(array_slice($calendarPie->GetTestFormUpdates(), -2)[0]['Value'], strlen('data:image/svg+xml;base64,')), true);
 assertGatewayGauge(
-    str_contains($autoUnknownSVG, SymconECharts\EChartsAsset::ThemePreviewPalette('dark')['muted']),
+    str_contains($autoUnknownSVG, eCharts\EChartsAsset::ThemePreviewPalette('dark')['muted']),
     'Automatic unknown duration color must use the same theme-muted fallback as the native renderer.'
 );
 foreach ([0, 80] as $innerRadius) {
@@ -365,12 +362,7 @@ assertGatewayGauge(
 date_default_timezone_set('Europe/Berlin');
 assertGatewayGauge((new ReflectionProperty(IPSModuleStrict::class, 'properties'))->getValue($calendarPie) === $properties
     && $GLOBALS['symconTestArchiveQueryCount'] === $queries, 'Mode and designer drafts must not persist properties or query archives.');
-$GLOBALS['symconTestCopyTarget'] = $calendarPie;
-try {
-    $calendarPie->CopyTileDesignToIPSView();
-} finally {
-    unset($GLOBALS['symconTestCopyTarget']);
-}
+copyDesignAndApplyForm($calendarPie);
 $copied = (new ReflectionProperty(IPSModuleStrict::class, 'properties'))->getValue($calendarPie);
 foreach ($defaults as $name => $default) {
     assertGatewayGauge($copied[$name] === $copied['IPSView' . $name], 'Copy must include CalendarPie design: ' . $name);

@@ -85,7 +85,7 @@ $extendedData = json_decode($river->GetThemeRiverData(), true, 512, JSON_THROW_O
 assertGatewayGauge($extendedData['themeRiver']['rows'] === $riverRows, 'Design changes must not change archive rows.');
 $extendedForm = json_decode($river->GetConfigurationForm(), true, 512, JSON_THROW_ON_ERROR);
 foreach ($riverDesignChanges as $name => $value) {
-    $encoded = str_ends_with($name, 'Color') ? SymconECharts\EChartsAsset::ColorToHex($value) : $value;
+    $encoded = str_ends_with($name, 'Color') ? eCharts\EChartsAsset::ColorToHex($value) : $value;
     assertGatewayGauge($extendedData['themeRiver']['style'][lcfirst($name)] === $encoded, 'Missing ThemeRiver design payload: ' . $name);
     foreach (['', 'IPSView'] as $prefix) {
         $control = findGaugeFormElement($extendedForm['elements'], $prefix . $name);
@@ -120,12 +120,7 @@ foreach (['BandHeightPercent' => 19, 'BorderType' => 'invalid', 'ShadowBlur' => 
         $river->SetTestProperty($prefix . $name, $riverDesignChanges[$name]);
     }
 }
-$GLOBALS['symconTestCopyTarget'] = $river;
-try {
-    $river->CopyTileDesignToIPSView();
-} finally {
-    unset($GLOBALS['symconTestCopyTarget']);
-}
+copyDesignAndApplyForm($river);
 $copied = (new ReflectionProperty(IPSModuleStrict::class, 'properties'))->getValue($river);
 foreach ($riverDesignChanges as $name => $value) {
     assertGatewayGauge($copied['IPSView' . $name] === $value, 'Design copy must include ' . $name);
@@ -175,12 +170,7 @@ foreach (['24h', '7d', '30d'] as $previewRange) {
     );
 }
 assertGatewayGauge((new ReflectionProperty(IPSModuleStrict::class, 'properties'))->getValue($river) === $riverSaved, 'Layout previews must never change saved configuration.');
-$GLOBALS['symconTestCopyTarget'] = $river;
-try {
-    $river->CopyTileDesignToIPSView();
-} finally {
-    unset($GLOBALS['symconTestCopyTarget']);
-}
+copyDesignAndApplyForm($river);
 assertGatewayGauge(str_contains($river->GetIPSViewHTML(), '"bandOpacityPercent":85'), 'Design copy must include all ThemeRiver fields.');
 $river->SetTestProperty('IPSViewUseTileDesign', true);
 $riverInheritedForm = json_decode($river->GetConfigurationForm(), true, 512, JSON_THROW_ON_ERROR);
@@ -208,7 +198,7 @@ IPSModuleStrict::$ParentResponder = static function (string $json) use ($riverPa
     for ($t = $p['StartTimestamp']; $t <= $p['EndTimestamp']; $t += 3600) {
         $points[] = [$t, 1.2345678901234567e250];
     }
-    return SymconECharts\EChartsDataProtocol::EncodeSuccessResponse('archive.read', [
+    return eCharts\EChartsDataProtocol::EncodeSuccessResponse('archive.read', [
         'VariableID'     => $p['VariableID'], 'VariableType' => 2, 'ArchiveAggregationType' => 'standard', 'EffectiveReducer' => 'average',
         'StartTimestamp' => $p['StartTimestamp'], 'EndTimestamp' => $p['EndTimestamp'], 'Points' => $points, 'Truncated' => false]);
 };
@@ -253,7 +243,7 @@ foreach (['hour', 'day'] as $aggregation) {
         $request = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
         $payload = $request['Payload'];
         assertGatewayGauge($payload['Reducer'] === 'average' && $payload['AggregationLevel'] === ($aggregation === 'day' ? 1 : 0), 'ThemeRiver must request explicit standard means.');
-        return SymconECharts\EChartsDataProtocol::EncodeSuccessResponse(SymconECharts\EChartsDataProtocol::OPERATION_ARCHIVE_READ, [
+        return eCharts\EChartsDataProtocol::EncodeSuccessResponse(eCharts\EChartsDataProtocol::OPERATION_ARCHIVE_READ, [
             'VariableID'     => $payload['VariableID'], 'VariableType' => 2, 'ArchiveAggregationType' => 'standard', 'EffectiveReducer' => 'average',
             'StartTimestamp' => $payload['StartTimestamp'], 'EndTimestamp' => $payload['EndTimestamp'], 'Points' => [], 'Truncated' => false]);
     };

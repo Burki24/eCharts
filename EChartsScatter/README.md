@@ -5,7 +5,7 @@ als Streudiagramm. Eine dritte Archivvariable kann die Punktgröße steuern
 (Bubble-Darstellung). Ein gemeinsames `EChartsGateway` genügt für alle
 ECharts-Instanzen.
 
-Installation: Im **Symcon-Modulstore** nach **SymconECharts** suchen.
+Installation: Im **Symcon-Modulstore** nach **eCharts** suchen.
 [Voraussetzungen und Einrichtung](../README.md#installation-und-erstes-diagramm)
 (IP-Symcon 9.0/9.1, PHP 8.5, gemeinsames Gateway).
 Alle technischen Felder, Standardwerte und Quellenparameter stehen in der
@@ -86,6 +86,7 @@ ein gröberes Archivintervall ermöglichen längere vollständige Ausschnitte.
 ## Design und Ausgabe
 
 Benannte Vergleiche erhalten eine scrollbare Legende zum Ein-/Ausblenden.
+Die Legendenfarbe im jeweiligen Designer gilt für die Gruppennamen, die Seitennavigation und die Beschriftung der Farbskala.
 Auswahl und Legendenposition bleiben bei Aktualisierung und Umordnung erhalten;
 Umbenennen ändert die interne Zuordnung nicht. Ohne ausdrückliche Punktfarbe
 unterscheiden Theme-Farben die Gruppen. Eine gesetzte Punktfarbe bleibt für alle
@@ -121,6 +122,10 @@ zoomen; in IPSView wird das Mausrad gesondert verarbeitet. Beide Achsenausschnit
 bleiben bei einer Aktualisierung desselben Zeitraums erhalten und werden beim
 Wechsel des Zeitraums zurückgesetzt. Der Zoom ist im Kachel- und im
 unabhängigen IPSView-Designer getrennt abschaltbar.
+Mit **Reglerdicke (0 = automatisch)** bestimmen Sie die Höhe des X-Reglers
+und die Breite des Y-Reglers gemeinsam. Auf einem Touchgerät können Sie
+beispielsweise 32 px einstellen. Bei 0 verwendet die Anzeige wie bisher
+eine an die Diagrammgröße angepasste Dicke.
 Optional aktiviert die Bereichsauswahl zwei ECharts-Werkzeuge: Ein Rechteck
 markiert Punkte in der X/Y-Fläche, das zweite hebt die Auswahl auf. Die
 nutzbare Symbolgröße passt sich dabei der Kachel- oder Widgetgröße an. Die
@@ -148,6 +153,18 @@ stehen. Nach wiederholtem Fehler erscheint ein Hinweis und das Modul versucht
 nach 60 Sekunden erneut zu lesen. Ohne frühere Daten oder bei ungültiger
 Konfiguration erscheint eine Fehlermeldung.
 
+### Zeitraum im Diagramm wechseln
+
+Mit **Zeitraumauswahl anzeigen** im Kacheldesigner oder im eigenständigen IPSView-Designer
+bekommt das Diagramm ein kleines Auswahlmenü. Du kannst etwa zwischen den letzten 6 oder
+24 Stunden, **Heute**, der laufenden Woche, dem laufenden Monat und dem laufenden Jahr
+wechseln. Für die Auswahl werden Archivdaten im gewählten Zeitfenster geladen. Bei
+Vergleichsgruppen gilt dasselbe Fenster für alle Gruppen. Die Zuordnung gemeinsamer Intervalle
+und das Punktbudget gelten auch hier. Über **Standard** kehrst Du zum konfigurierten Zeitraum
+zurück.
+
+Die Auswahl gilt für die geöffnete Ansicht. Beim erneuten Öffnen gilt wieder der konfigurierte Zeitraum.
+
 ## Konfigurationsreferenz und Skriptzugriff
 
 Die [Feldreferenz](../docs/KONFIGURATION.md#echartsscatter) enthält
@@ -173,7 +190,7 @@ oder das Gateway. Alle aufgeführten Argumente beim Symcon-Aufruf übergeben.
 
 | Signatur | Rückgabe und Wirkung |
 | --- | --- |
-| `ECSC_CopyTileDesignToIPSView(int $InstanzID): void` | Kopiert das gespeicherte Kacheldesign, ersetzt die unabhängigen IPSView-Designwerte und wendet sie an; aktiviert unabhängiges Design. |
+| `ECSC_CopyTileDesignToIPSView(int $InstanzID): void` | Überträgt die gespeicherten Kachelwerte in den geöffneten IPSView-Formularentwurf. Erst **Übernehmen** speichert die Kopie. |
 | `ECSC_GetScatterData(int $InstanzID): string` | Liest das reguläre konfigurierte Diagrammmodell als JSON; keine Änderung von Quellen oder Archivwerten. |
 | `ECSC_GetScatterDiagnostic(int $InstanzID): string` | JSON-Momentaufnahme der Konfigurationsprüfung und letzten Fehlermeldung; kein Nachweis einer erfolgreichen Datenabfrage. |
 | `ECSC_GetIPSViewHTML(int $InstanzID): string` | Vollständiges HTML-Dokument für IPSView; der Rückgabewert bestätigt keine Anzeige in einem Client. |

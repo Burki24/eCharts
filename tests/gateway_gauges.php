@@ -2,7 +2,8 @@
 
 declare(strict_types=1);
 
-use SymconECharts\EChartsDataProtocol;
+use eCharts\EChartsAsset;
+use eCharts\EChartsDataProtocol;
 
 const IPS_KERNELSTARTED = 10001;
 const VM_UPDATE = 10603;
@@ -190,7 +191,11 @@ function IPS_SetProperty(int $instanceID, string $name, mixed $value): bool
     if (!$target instanceof IPSModuleStrict || $target->InstanceID !== $instanceID) {
         throw new RuntimeException('Unknown test configuration target.');
     }
-    $target->SetTestProperty($name, $value);
+    if ($target instanceof TreeJSONKernelFixture) {
+        $target->PlanProperty($name, $value);
+    } else {
+        $target->SetTestProperty($name, $value);
+    }
 
     return true;
 }
@@ -200,6 +205,9 @@ function IPS_ApplyChanges(int $instanceID): bool
     $target = $GLOBALS['symconTestCopyTarget'] ?? null;
     if (!$target instanceof IPSModuleStrict || $target->InstanceID !== $instanceID) {
         throw new RuntimeException('Unknown test configuration target.');
+    }
+    if ($target instanceof TreeJSONKernelFixture) {
+        $target->CommitProperties();
     }
     $target->ApplyChanges();
 
@@ -258,6 +266,11 @@ function ECGW_RefreshTransport(int $instanceID): void
 function ECGW_GetTransportState(int $instanceID, int $deviceID, string $channel, int $offset, string $output): string
 {
     return $GLOBALS['symconTestGatewayObjects'][$instanceID]->GetTransportState($deviceID, $channel, $offset, $output);
+}
+
+function ECGW_GetPeriodTransportState(int $instanceID, int $deviceID, string $channel, int $offset, string $output, string $period): string
+{
+    return $GLOBALS['symconTestGatewayObjects'][$instanceID]->GetPeriodTransportState($deviceID, $channel, $offset, $output, $period);
 }
 
 function WC_PushMessage(int $instanceID, string $path, string $message): void
@@ -384,6 +397,9 @@ function IPS_GetName(int $objectID): string
 /** @return array<string, bool> */
 function IPS_GetObject(int $objectID): array
 {
+    if (isset($GLOBALS['treeJSONObjectHook'])) {
+        ($GLOBALS['treeJSONObjectHook'])($objectID);
+    }
     if ($GLOBALS['symconTestLegacyObject'] ?? false) {
         return [];
     }
@@ -498,6 +514,11 @@ abstract class IPSModuleStrict
             $this->attributes = array_replace($this->attributes, $persisted, $this->TestCreateAttributeWrites);
             $this->testRestoringAttributes = false;
         }
+    }
+
+    public function Migrate(string $JSONData): string
+    {
+        return '';
     }
 
     public function Create(): void
@@ -666,11 +687,6 @@ abstract class IPSModuleStrict
         }
 
         return $this->variableIDs[$ident];
-    }
-
-    protected function VariableExists(string $ident): bool
-    {
-        return isset($this->variableIDs[$ident]);
     }
 
     protected function ReadPropertyInteger(string $name): int
@@ -877,6 +893,16 @@ abstract class IPSModuleStrict
         return true;
     }
 
+    protected function UnregisterHook(string $hook): bool
+    {
+        if (($GLOBALS['symconTestHookOwners'][$hook] ?? 0) !== $this->InstanceID) {
+            return false;
+        }
+        unset($GLOBALS['symconTestHookOwners'][$hook]);
+        $this->hooks = array_values(array_diff($this->hooks, [$hook]));
+        return true;
+    }
+
     protected function SendDebug(string $message, string $data, int $format): bool
     {
         if ($this->FailDebug) {
@@ -913,6 +939,12 @@ require_once dirname(__DIR__) . '/EChartsSankey/module.php';
 
 final class TestableEChartsGateway extends EChartsGateway
 {
+    public function RestoreTestHook(string $hook): void
+    {
+        $this->RegisterHook($hook);
+        $this->SetBuffer('TransportPeers', '[]');
+    }
+
     public function ProcessTestHook(): string
     {
         ob_start();
@@ -925,10 +957,22 @@ final class TestableEChartsGateway extends EChartsGateway
 final class TestableEChartsTimeSeries extends EChartsTimeSeries
 {
     private int $currentTimestamp = 1;
+    private array $translations = [];
+
+    public function SetTestLanguage(string $language): void
+    {
+        $catalog = json_decode(file_get_contents(dirname(__DIR__) . '/EChartsTimeSeries/locale.json'), true, 512, JSON_THROW_ON_ERROR);
+        $this->translations = $catalog['translations'][$language] ?? [];
+    }
 
     public function SetTestCurrentTimestamp(int $timestamp): void
     {
         $this->currentTimestamp = $timestamp;
+    }
+
+    protected function Translate(string $text): string
+    {
+        return $this->translations[$text] ?? parent::Translate($text);
     }
 
     protected function CurrentTimestamp(): int
@@ -1047,6 +1091,41 @@ final class TestableEChartsHeatmap extends EChartsHeatmap
     }
 }
 
+/** @return array<string, string> Project and helper captions shared by generated designers. */
+function designerGermanCaptions(): array
+{
+    $translations = [];
+    foreach ([dirname(__DIR__) . '/libs/DesignerColorGuide.json', ...glob(dirname(__DIR__) . '/libs/helper/translations/*.json')] as $file) {
+        $catalog = json_decode((string) file_get_contents($file), true, 32, JSON_THROW_ON_ERROR);
+        foreach ($catalog['translations'] as $entry) {
+            $translations[$entry['en']] = $entry['de'];
+        }
+    }
+
+    return $translations;
+}
+
+/** Simulate clicking Copy and then the separate Apply button in the configuration form. */
+function copyDesignAndApplyForm(IPSModuleStrict $module): void
+{
+    $saved = $module->GetTestProperties();
+    $start = count($module->GetTestFormUpdates());
+    $module->CopyTileDesignToIPSView();
+    assertGatewayGauge($module->GetTestProperties() === $saved, 'Copy must leave the active configuration untouched.');
+    $draft = [];
+    foreach (array_slice($module->GetTestFormUpdates(), $start) as $update) {
+        $field = $update['Field'];
+        if (array_key_exists($field, $saved) && in_array($update['Parameter'], ['value', 'values'], true)) {
+            $draft[$field] = $update['Value'];
+        }
+    }
+    assertGatewayGauge(($draft['IPSViewUseTileDesign'] ?? null) === false, 'Copy must stage an independent IPSView design.');
+    foreach ($draft as $name => $value) {
+        $module->SetTestProperty($name, $value);
+    }
+    $module->ApplyChanges();
+}
+
 function assertGatewayGauge(bool $condition, string $message): void
 {
     if (!$condition) {
@@ -1100,7 +1179,7 @@ function findGaugeFormElement(array $items, string $name): ?array
 }
 
 $interactionTemplates = glob(dirname(__DIR__) . '/ECharts*/visualization/index.html');
-assertGatewayGauge(count($interactionTemplates) === 29, 'Every chart module must participate in shared interaction delivery.');
+assertGatewayGauge(count($interactionTemplates) === 30, 'Every chart module must participate in shared interaction delivery.');
 foreach ($interactionTemplates as $interactionTemplate) {
     $interactionHTML = file_get_contents($interactionTemplate);
     $interactionOffset = strpos($interactionHTML, '{{INTERACTION_SCRIPT}}');
@@ -1111,15 +1190,26 @@ $assetGateway = new TestableEChartsGateway();
 $assetGateway->Create();
 $assetServer = $_SERVER;
 $_SERVER['REQUEST_METHOD'] = 'GET';
-$_SERVER['SCRIPT_NAME'] = '/hook/SymconECharts/assets/interaction.js';
+$_SERVER['SCRIPT_NAME'] = '/hook/eCharts/assets/interaction.js';
 assertGatewayGauge(
     $assetGateway->ProcessTestHook() === file_get_contents(dirname(__DIR__) . '/libs/helper/visualization/interaction.min.js') && http_response_code() === 200,
     'The public interaction endpoint must serve exactly the bundled shared library.'
 );
-foreach ([['POST', '/hook/SymconECharts/assets/interaction.js'], ['GET', '/hook/SymconECharts/assets/interaction.js/extra'], ['GET', '/hook/SymconECharts/assets/../interaction.js']] as [$assetMethod, $assetPath]) {
+foreach ([['POST', '/hook/eCharts/assets/interaction.js'], ['GET', '/hook/eCharts/assets/interaction.js/extra'], ['GET', '/hook/eCharts/assets/../interaction.js']] as [$assetMethod, $assetPath]) {
     $_SERVER['REQUEST_METHOD'] = $assetMethod;
     $_SERVER['SCRIPT_NAME'] = $assetPath;
     assertGatewayGauge($assetGateway->ProcessTestHook() === '' && http_response_code() === 404, 'The interaction endpoint must reject other methods and paths.');
+}
+$gaugeRendererTag = EChartsAsset::RendererScript('gauge', true);
+$gaugeRendererPath = EChartsAsset::RENDERER_PATH . EChartsAsset::VERSION . '/gauge-' . EChartsAsset::SHA256 . '.js';
+assertGatewayGauge($gaugeRendererTag === '<script src="' . $gaugeRendererPath . '"></script>', 'Stored charts must reference a versioned renderer with its full digest.');
+$_SERVER['REQUEST_METHOD'] = 'GET';
+$_SERVER['SCRIPT_NAME'] = $gaugeRendererPath;
+assertGatewayGauge($assetGateway->ProcessTestHook() === EChartsAsset::JavaScript() && http_response_code() === 200, 'The Gateway must serve the exact renderer chosen in the chart.');
+foreach ([['POST', $gaugeRendererPath], ['GET', $gaugeRendererPath . '/extra'], ['GET', str_replace(EChartsAsset::SHA256, str_repeat('0', 64), $gaugeRendererPath)]] as [$assetMethod, $assetPath]) {
+    $_SERVER['REQUEST_METHOD'] = $assetMethod;
+    $_SERVER['SCRIPT_NAME'] = $assetPath;
+    assertGatewayGauge($assetGateway->ProcessTestHook() === '' && http_response_code() === 404, 'The Gateway must restrict renderer requests to allowlisted immutable assets.');
 }
 $_SERVER = $assetServer;
 http_response_code(200);
@@ -1128,11 +1218,19 @@ $gateway = new EChartsGateway();
 $gateway->Create();
 $gateway->ApplyChanges();
 assertGatewayGauge(
-    $gateway->GetTestHooks() === ['SymconECharts'],
-    'The Gateway must own the shared SymconECharts WebHook.'
+    $gateway->GetTestHooks() === [EChartsAsset::HOOK_NAME],
+    'The Gateway must own the shared eCharts WebHook.'
 );
 IPSModuleStrict::$ParentResponder = static fn (string $json): string => $gateway->ForwardData($json);
 
+if (array_slice($argv, 1) === ['--gateway-journal-start']) {
+    require __DIR__ . '/gateway_journal_start.php';
+    exit(0);
+}
+if (array_slice($argv, 1) === ['--design-copy-form']) {
+    require __DIR__ . '/design_copy_form.php';
+    exit(0);
+}
 require __DIR__ . '/gateway_transport.php';
 if (array_slice($argv, 1) === ['--jslive-targets']) {
     require __DIR__ . '/jslive_targets.php';
@@ -1187,6 +1285,17 @@ if (array_slice($argv, 1) === ['--graph-large']) {
 if (array_slice($argv, 1) === ['--tree-depth']) {
     require __DIR__ . '/tree_depth.php';
     echo "Twelve-level Tree integration verified.\n";
+    exit(0);
+}
+
+if (array_slice($argv, 1) === ['--tree-json']) {
+    require __DIR__ . '/tree_json_runtime.php';
+    exit(0);
+}
+
+if (array_slice($argv, 1) === ['--gauge-wind']) {
+    require_once dirname(__DIR__) . '/EChartsGaugeWind/module.php';
+    require __DIR__ . '/gauge_wind_integration.php';
     exit(0);
 }
 
@@ -1552,7 +1661,9 @@ assertGatewayGauge(
 );
 assertGatewayGauge(
     is_string($gauge->GetTestVariableValue('IPSViewGauge'))
-        && str_contains($gauge->GetTestVariableValue('IPSViewGauge'), '"mode":"ipsview"'),
+        && str_contains($gauge->GetTestVariableValue('IPSViewGauge'), '"mode":"ipsview"')
+        && str_contains($gauge->GetTestVariableValue('IPSViewGauge'), $gaugeRendererTag)
+        && !str_contains($gauge->GetTestVariableValue('IPSViewGauge'), EChartsAsset::JavaScript()),
     'Enabled IPSView output must maintain and populate its WebContent variable.'
 );
 
@@ -1579,12 +1690,9 @@ assertGatewayGauge(
 unset($GLOBALS['symconTestHiddenTitles'][$gauge->InstanceID]);
 assertGatewayGauge(str_contains($visualizationTile, "registerTheme('vintage'"), 'Gauge Single tile must register official ECharts themes.');
 assertGatewayGauge(
-    str_contains(
-        $visualizationTile,
-        "bootstrap.mode === 'ipsview' && bootstrap.options.adaptToBackground === true"
-    )
-        && str_contains($visualizationTile, "? 'transparent'")
-        && str_contains($visualizationTile, ': colors.background'),
+    str_contains($visualizationTile, 'echartsDesign.chartBackground(bootstrap, payload, colors.background)')
+        && str_contains($visualizationTile, "return isRoot ? '' : 'transparent'")
+        && str_contains($visualizationTile, 'return override || themeColor'),
     'Gauges must keep a readable theme background unless IPSView background adaptation is enabled.'
 );
 assertGatewayGauge(
@@ -1608,7 +1716,23 @@ assertGatewayGauge(
     strlen($inheritedIPSViewHTML) < SYMCON_OUTPUT_BUFFER_LIMIT,
     'Gauge Single IPSView HTML must remain below the Symcon output-buffer limit.'
 );
+$gauge->SetTestProperty('ChartBackgroundColor', 0);
+foreach ([$gauge->GetVisualizationTile(), $gauge->GetIPSViewHTML()] as $page) {
+    assertGatewayGauge(
+        str_contains($page, '"chartBackgroundColor":"#000000"')
+            && str_contains($page, '--symc-chart-page-background:#000000;'),
+        'The tile and an inheriting IPSView must paint black behind the canvas and its surrounding controls.'
+    );
+}
 $gauge->SetTestProperty('IPSViewUseTileDesign', false);
+$gauge->SetTestProperty('IPSViewChartBackgroundColor', 0xCCDD00);
+assertGatewayGauge(
+    str_contains($gauge->GetIPSViewHTML(), '"chartBackgroundColor":"#CCDD00"')
+        && str_contains($gauge->GetVisualizationTile(), '"chartBackgroundColor":"#000000"'),
+    'An independent IPSView background must follow its own selection.'
+);
+$gauge->SetTestProperty('ChartBackgroundColor', -1);
+$gauge->SetTestProperty('IPSViewChartBackgroundColor', -1);
 $gauge->SetTestProperty('IPSViewGaugePreset', 'speed');
 $gauge->SetTestProperty('IPSViewEChartsTheme', 'roma');
 $gauge->SetTestProperty('IPSViewPointerColor', 0xA04020);
@@ -2506,7 +2630,7 @@ $heatmapNavigation->ApplyChanges();
 $navigationCurrent = json_decode($heatmapNavigation->GetHeatmapData(), true, 512, JSON_THROW_ON_ERROR);
 $heatmapTile = $heatmapNavigation->GetVisualizationTile();
 assertGatewayGauge(
-    preg_match('#/hook/SymconECharts/state/5000/([a-f0-9]{32})#', $heatmapTile, $heatmapChannel) === 1,
+    preg_match('#/hook/eCharts/state/5000/([a-f0-9]{32})#', $heatmapTile, $heatmapChannel) === 1,
     'The Heatmap tile must expose a scoped read-only navigation channel.'
 );
 $heatmapRequest = ['DataID' => '{E4749B72-912B-E3E3-1C57-D19019FFDD84}']
@@ -2536,7 +2660,7 @@ $heatmapHookGateway->Create();
 $heatmapHookGateway->ApplyChanges();
 IPSModuleStrict::$ChildResponders = [static fn (string $json): string => $heatmapNavigation->ReceiveData($json)];
 $_SERVER['REQUEST_METHOD'] = 'GET';
-$_SERVER['SCRIPT_NAME'] = '/hook/SymconECharts/state/5000/' . $heatmapChannel[1];
+$_SERVER['SCRIPT_NAME'] = '/hook/eCharts/state/5000/' . $heatmapChannel[1];
 $_GET['offset'] = '1';
 $_GET['output'] = 'tile';
 $navigatedHookState = json_decode($heatmapHookGateway->ProcessTestHook(), true, 512, JSON_THROW_ON_ERROR);
@@ -2676,10 +2800,10 @@ foreach ([1, 2, 3] as $index) {
 }
 foreach ($heatmapPresetSelect['options'] as $option) {
     $id = $option['value'];
-    $colors = \SymconECharts\HeatmapColorScales::Colors($id);
-    $scaleRange = \SymconECharts\HeatmapColorScales::Range($id);
+    $colors = \eCharts\HeatmapColorScales::Colors($id);
+    $scaleRange = \eCharts\HeatmapColorScales::Range($id);
     assertGatewayGauge(
-        \SymconECharts\HeatmapColorScales::IsSupported($id)
+        \eCharts\HeatmapColorScales::IsSupported($id)
             && ($id === 'custom' || count($colors) >= 2)
             && count(array_filter($colors, static fn (string $color): bool => preg_match('/^#[0-9A-F]{6}$/', $color) === 1)) === count($colors)
             && ($id === 'custom' ? $scaleRange === null : is_array($scaleRange) && $scaleRange['min'] < $scaleRange['max']),
@@ -2687,7 +2811,7 @@ foreach ($heatmapPresetSelect['options'] as $option) {
     );
 }
 assertGatewayGauge(
-    \SymconECharts\HeatmapColorScales::Range('noaa2023') === ['min' => -50, 'max' => 50],
+    \eCharts\HeatmapColorScales::Range('noaa2023') === ['min' => -50, 'max' => 50],
     'The NOAA sample must retain its documented -50 to +50 °C range.'
 );
 $heatmapTitleAction = (string) (findGaugeFormElement($heatmapForm['elements'], 'Title')['onChange'] ?? '');
@@ -3034,7 +3158,7 @@ foreach (['font-size:21px', 'font-size:57.5px', 'font-size:34.5px', 'font-size:1
 }
 
 foreach (['basic', 'simple', 'progress', 'speed'] as $preset) {
-    $presetSvg = \SymconECharts\EChartsGaugeSinglePreview::CreateSvg(
+    $presetSvg = \eCharts\EChartsGaugeSinglePreview::CreateSvg(
         42.5,
         -20.0,
         80.0,
@@ -3049,7 +3173,7 @@ foreach (['basic', 'simple', 'progress', 'speed'] as $preset) {
         'Gauge Single preview must render the ' . $preset . ' preset.'
     );
 }
-$shortCustomPointerSvg = \SymconECharts\EChartsGaugeSinglePreview::CreateSvg(
+$shortCustomPointerSvg = \eCharts\EChartsGaugeSinglePreview::CreateSvg(
     50.0,
     0.0,
     100.0,
@@ -3066,7 +3190,7 @@ $shortCustomPointerSvg = \SymconECharts\EChartsGaugeSinglePreview::CreateSvg(
         'pointerLengthPercent' => 50
     ]
 );
-$longCustomPointerSvg = \SymconECharts\EChartsGaugeSinglePreview::CreateSvg(
+$longCustomPointerSvg = \eCharts\EChartsGaugeSinglePreview::CreateSvg(
     50.0,
     0.0,
     100.0,
@@ -3094,7 +3218,7 @@ foreach ([
     'progress' => ['centerY' => 190.0, 'radius' => 132.0],
     'speed'    => ['centerY' => 232.0, 'radius' => 142.0]
 ] as $preset => $geometry) {
-    $presetSvg = \SymconECharts\EChartsGaugeSinglePreview::CreateSvg(
+    $presetSvg = \eCharts\EChartsGaugeSinglePreview::CreateSvg(
         42.5,
         -20.0,
         80.0,
@@ -3122,7 +3246,7 @@ foreach ([
         'Gauge preview must place split lines inside the progress ring for ' . $preset . '.'
     );
 }
-$basicPresetSvg = \SymconECharts\EChartsGaugeSinglePreview::CreateSvg(
+$basicPresetSvg = \eCharts\EChartsGaugeSinglePreview::CreateSvg(
     42.5,
     -20.0,
     80.0,
@@ -3136,7 +3260,7 @@ assertGatewayGauge(
     preg_match('/<path d="[^"]+" class="progress"/', $basicPresetSvg) !== 1,
     'Basic Gauge must not render a progress arc.'
 );
-$speedPresetSvg = \SymconECharts\EChartsGaugeSinglePreview::CreateSvg(
+$speedPresetSvg = \eCharts\EChartsGaugeSinglePreview::CreateSvg(
     42.5,
     -20.0,
     80.0,
@@ -3154,7 +3278,7 @@ assertGatewayGauge(
 assertGatewayGauge(str_contains($speedPresetSvg, 'class="value-unit"'), 'Speed Gauge preview must style the unit separately.');
 assertGatewayGauge(str_contains($speedPresetSvg, 'data-major-splits="10"'), 'A 0–100 scale must keep ten readable divisions.');
 
-$customDesignSvg = \SymconECharts\EChartsGaugeSinglePreview::CreateSvg(
+$customDesignSvg = \eCharts\EChartsGaugeSinglePreview::CreateSvg(
     42.5,
     -20.0,
     80.0,
@@ -3195,7 +3319,7 @@ foreach (['#112233', '#223344', '#334455', '#445566', '#556677', '#667788'] as $
     );
 }
 
-$officialSpeedRangeSvg = \SymconECharts\EChartsGaugeSinglePreview::CreateSvg(
+$officialSpeedRangeSvg = \eCharts\EChartsGaugeSinglePreview::CreateSvg(
     100.0,
     0.0,
     240.0,
@@ -3214,7 +3338,7 @@ assertGatewayGauge(
     'The official Speed Gauge preview must expose the characteristic 20-unit scale steps.'
 );
 
-$shineSpeedSvg = \SymconECharts\EChartsGaugeSinglePreview::CreateSvg(
+$shineSpeedSvg = \eCharts\EChartsGaugeSinglePreview::CreateSvg(
     1.0,
     0.0,
     1000.0,
@@ -3844,7 +3968,7 @@ foreach ([
     );
     if ($dedicatedClass === EChartsGaugeTacho::class) {
         $fivePreviewItems = array_fill(0, 5, $dedicatedData['items'][1]);
-        $fiveGaugePreview = \SymconECharts\EChartsGaugeTachoPreview::CreateSvg(
+        $fiveGaugePreview = \eCharts\EChartsGaugeTachoPreview::CreateSvg(
             $fivePreviewItems,
             '',
             'auto',
@@ -3989,12 +4113,12 @@ assertGatewayGauge(
 );
 assertGatewayGauge(
     preg_match(
-        '#/hook/SymconECharts/state/5000/([a-f0-9]{32})#',
+        '#/hook/eCharts/state/5000/([a-f0-9]{32})#',
         $inheritedMultiIPSView,
         $multiTransportMatch
     ) === 1
         && str_contains($inheritedMultiIPSView, 'new WebSocket')
-        && str_contains($inheritedMultiIPSView, '/hook/SymconECharts/WS/5000/'),
+        && str_contains($inheritedMultiIPSView, '/hook/eCharts/WS/5000/'),
     'Gauge Multi IPSView HTML must bootstrap the shared persistent transport.'
 );
 $multiStateRequest = ['DataID' => '{E4749B72-912B-E3E3-1C57-D19019FFDD84}']
@@ -4015,7 +4139,7 @@ $hookGateway->Create();
 $hookGateway->ApplyChanges();
 IPSModuleStrict::$ChildResponders = [static fn (string $json): string => $multiGauge->ReceiveData($json)];
 $_SERVER['REQUEST_METHOD'] = 'GET';
-$_SERVER['SCRIPT_NAME'] = '/hook/SymconECharts/state/5000/' . $multiTransportMatch[1];
+$_SERVER['SCRIPT_NAME'] = '/hook/eCharts/state/5000/' . $multiTransportMatch[1];
 $hookState = json_decode($hookGateway->ProcessTestHook(), true, 512, JSON_THROW_ON_ERROR);
 assertGatewayGauge(
     ($hookState['status'] ?? null) === 'ready',
@@ -4282,7 +4406,7 @@ foreach (array_slice($multiGauge->GetTestFormUpdates(), -2) as $previewUpdate) {
     );
 }
 unset($GLOBALS['symconTestVariables'][4718]);
-$ringPreviewSvg = \SymconECharts\EChartsGaugeMultiPreview::CreateSvg(
+$ringPreviewSvg = \eCharts\EChartsGaugeMultiPreview::CreateSvg(
     [
         ['label' => 'A', 'minimum' => 0.0, 'maximum' => 100.0, 'unit' => '%', 'decimals' => 0, 'value' => 25.0],
         ['label' => 'B', 'minimum' => 0.0, 'maximum' => 100.0, 'unit' => '%', 'decimals' => 0, 'value' => 75.0]
@@ -4307,7 +4431,7 @@ foreach ([
     'multi-title'     => 4, 'ring-grid' => 4, 'ring-concentric' => 4,
     'weather-station' => 4, 'tacho' => 3, 'chronograph' => 6
 ] as $preset => $visibleCount) {
-    $limitedPresetSvg = \SymconECharts\EChartsGaugeMultiPreview::CreateSvg(
+    $limitedPresetSvg = \eCharts\EChartsGaugeMultiPreview::CreateSvg(
         $previewLimitItems,
         '',
         'dark',
@@ -4319,7 +4443,7 @@ foreach ([
         'Gauge Multi ' . $preset . ' preview must disclose its actual source limit.'
     );
 }
-$completePresetSvg = \SymconECharts\EChartsGaugeMultiPreview::CreateSvg(
+$completePresetSvg = \eCharts\EChartsGaugeMultiPreview::CreateSvg(
     array_slice($previewLimitItems, 0, 3),
     '',
     'dark',
@@ -4346,7 +4470,7 @@ $multiSocketUpdate = $GLOBALS['symconTestWebSocketMessages'][$multiSocketUpdateC
 assertGatewayGauge(
     is_array($multiSocketUpdate)
         && $multiSocketUpdate['InstanceID'] === 6100
-        && str_starts_with($multiSocketUpdate['Path'], '/hook/SymconECharts/WS/5000/')
+        && str_starts_with($multiSocketUpdate['Path'], '/hook/eCharts/WS/5000/')
         && str_contains($multiSocketUpdate['Message'], '"value":43.5'),
     'Gauge Multi must send source changes to the persistent IPSView chart through the Gateway.'
 );
@@ -4579,7 +4703,7 @@ assertGatewayGauge(
         && !str_contains(json_encode($customAnchorData, JSON_THROW_ON_ERROR), '<svg'),
     'Gauge Single must expose only the validated custom hub path and viewBox.'
 );
-$customAnchorPreviewSvg = \SymconECharts\EChartsGaugeSinglePreview::CreateSvg(
+$customAnchorPreviewSvg = \eCharts\EChartsGaugeSinglePreview::CreateSvg(
     50.0,
     0.0,
     100.0,
@@ -4597,7 +4721,7 @@ assertGatewayGauge(
         && str_contains($customAnchorPreviewSvg, 'M50 0L100 50L50 100L0 50Z'),
     'Gauge Single preview must render a validated custom SVG hub at the pointer pivot.'
 );
-$hiddenAnchorPreviewSvg = \SymconECharts\EChartsGaugeSinglePreview::CreateSvg(
+$hiddenAnchorPreviewSvg = \eCharts\EChartsGaugeSinglePreview::CreateSvg(
     50.0,
     0.0,
     100.0,
@@ -4613,7 +4737,7 @@ assertGatewayGauge(
     !str_contains($hiddenAnchorPreviewSvg, 'class="anchor"'),
     'Gauge Single preview must hide the hub when explicitly configured.'
 );
-$transparentPlatePreviewSvg = \SymconECharts\EChartsGaugeSinglePreview::CreateSvg(
+$transparentPlatePreviewSvg = \eCharts\EChartsGaugeSinglePreview::CreateSvg(
     50.0,
     0.0,
     100.0,
@@ -4636,7 +4760,7 @@ assertGatewayGauge(
         && str_contains($transparentPlatePreviewSvg, 'stroke-width:3'),
     'Gauge Single preview must support a transparent circular plate with a visible border.'
 );
-$linearPlatePreviewSvg = \SymconECharts\EChartsGaugeSinglePreview::CreateSvg(
+$linearPlatePreviewSvg = \eCharts\EChartsGaugeSinglePreview::CreateSvg(
     50.0,
     0.0,
     100.0,
@@ -4742,7 +4866,7 @@ assertGatewayGauge(
         && str_contains($plateBackgroundFormSvg, '<image href="data:image/svg+xml;base64,'),
     'The Gauge configuration form must preview the imported and clipped SVG plate background.'
 );
-$plateBackgroundPreview = \SymconECharts\EChartsGaugeSinglePreview::CreateSvg(
+$plateBackgroundPreview = \eCharts\EChartsGaugeSinglePreview::CreateSvg(
     50.0,
     0.0,
     100.0,
@@ -4763,7 +4887,7 @@ assertGatewayGauge(
         && str_contains($plateBackgroundPreview, 'class="plate-outline"'),
     'Gauge Single preview must position and clip the SVG background inside the dial plate.'
 );
-$arcPlateBackgroundPreview = \SymconECharts\EChartsGaugeSinglePreview::CreateSvg(
+$arcPlateBackgroundPreview = \eCharts\EChartsGaugeSinglePreview::CreateSvg(
     50.0,
     0.0,
     100.0,
@@ -5236,6 +5360,7 @@ $timeSeries->SetTestProperty('ShowSymbols', true);
 $timeSeries->SetTestProperty('SymbolSizePercent', 125);
 $timeSeries->SetTestProperty('AreaOpacityPercent', 40);
 $timeSeries->SetTestProperty('ShowGrid', false);
+$timeSeries->SetTestProperty('ShowVerticalGrid', true);
 $timeSeries->SetTestProperty('ShowXAxis', false);
 $timeSeries->SetTestProperty('ShowYAxis', true);
 $timeSeries->SetTestProperty('TitleFontSizePercent', 125);
@@ -5245,6 +5370,7 @@ $timeSeries->SetTestProperty('TitleColor', 0x123456);
 $timeSeries->SetTestProperty('LegendColor', 0x234567);
 $timeSeries->SetTestProperty('AxisColor', 0x345678);
 $timeSeries->SetTestProperty('GridColor', 0x456789);
+$timeSeries->SetTestProperty('VerticalGridColor', 0x234123);
 $timeSeries->SetTestProperty('EnableIPSView', true);
 $timeSeries->ApplyChanges();
 $timeSeriesData = json_decode($timeSeries->GetTimeSeriesData(), true, 512, JSON_THROW_ON_ERROR);
@@ -5311,8 +5437,11 @@ assertGatewayGauge(
             'valueLabelDistance'      => 5,
             'areaOpacityPercent'      => 40,
             'showGrid'                => false,
+            'showVerticalGrid'        => true,
             'showXAxis'               => false,
             'showYAxis'               => true,
+            'valueAxisSpacing'        => 0,
+            'zoomSliderSize'          => 0,
             'titleFontSizePercent'    => 125,
             'legendFontSizePercent'   => 110,
             'axisFontSizePercent'     => 150,
@@ -5321,6 +5450,7 @@ assertGatewayGauge(
             'legendColor'             => '#234567',
             'axisColor'               => '#345678',
             'gridColor'               => '#456789',
+            'verticalGridColor'       => '#234123',
             'valueColor'              => ''
         ],
     'Time Series must build the accepted positioned-axis aggregated chart model.'
@@ -5352,7 +5482,7 @@ assertGatewayGauge(
         && str_contains($timeSeriesForm, 'SeriesAreaSVG')
         && str_contains($timeSeriesForm, 'ECTS_UpdateTimeSeriesPreviewSourceFromForm')
         && str_contains($timeSeriesForm, 'ECTS_GetTimeSeriesDiagnostic')
-        && str_contains($timeSeriesForm, 'ECTS_CopyTileDesignToIPSView')
+        && str_contains($timeSeriesForm, 'CopyTileDesignToIPSViewButton')
         && str_contains($timeSeriesForm, 'IPSViewUseTileDesign')
         && str_contains($timeSeriesForm, 'IPSViewUseTileTimeSettings')
         && str_contains($timeSeriesForm, 'IPSViewRange')
@@ -5435,6 +5565,8 @@ $timeSeries->UpdateTimeSeriesPreviewFromForm(json_encode([
     'LegendColor'           => 0x123456,
     'AxisColor'             => 0x234567,
     'GridColor'             => 0x345678,
+    'ShowVerticalGrid'      => true,
+    'VerticalGridColor'     => 0x112233,
     'TimeAxisLabelFormat'   => 'date'
 ], JSON_THROW_ON_ERROR));
 $timeSeriesPreviewUpdates = $timeSeries->GetTestFormUpdates();
@@ -5461,9 +5593,55 @@ assertGatewayGauge(
         && str_contains($timeSeriesPreviewSvg, 'data-annotation-type="line"')
         && str_contains($timeSeriesPreviewSvg, 'fill="#ABCDEF" font-size="30"')
         && str_contains($timeSeriesPreviewSvg, 'stroke="#345678"')
+        && preg_match('/<line x1="(\d+)" y1="[^"]+" x2="\1" y2="[^"]+" stroke="#112233"/', $timeSeriesPreviewSvg) === 1
         && str_contains($timeSeriesPreviewSvg, 'Preview target'),
     'Time Series Tile and IPSView previews must react immediately to unpersisted source and design values.'
 );
+(static function (): void
+{
+    $preview = new EChartsTimeSeries();
+    $preview->Create();
+    $east = ['VariableID' => 4711, 'Label' => 'East', 'Unit' => 'kW', 'UseVariablePresentation' => false,
+        'Style'           => 'line', 'Color' => '#345678', 'StackGroup' => 1];
+    $west = [...$east, 'VariableID' => 4713, 'Label' => 'West', 'Color' => '#654321', 'StackGroup' => 0];
+    $preview->SetTestProperty('Sources', json_encode([$east, $west], JSON_THROW_ON_ERROR));
+    $stored = $preview->GetTestProperties();
+    $west['StackGroup'] = 1;
+    $preview->UpdateTimeSeriesPreviewSourceFromForm(json_encode(['Sources' => $west], JSON_THROW_ON_ERROR), 'edit');
+    $rowUpdates = array_slice($preview->GetTestFormUpdates(), -2);
+    $preview->UpdateTimeSeriesPreviewFromForm(json_encode(['Sources' => [$east, $west]], JSON_THROW_ON_ERROR));
+    assertGatewayGauge(
+        $rowUpdates === array_slice($preview->GetTestFormUpdates(), -2)
+        && array_column($rowUpdates, 'Field') === ['TimeSeriesPreview', 'IPSViewTimeSeriesPreview']
+        && $preview->GetTestProperties() === $stored,
+        'Editing a stack group must refresh both draft previews identically to a full source list without saving it.'
+    );
+    foreach ($rowUpdates as $update) {
+        $svg = base64_decode(substr($update['Value'], strlen('data:image/svg+xml;base64,')), true);
+        assertGatewayGauge(
+            preg_match('/<path d="[^"]+ Z" fill="#345678"/', $svg) === 1
+            && preg_match('/<path d="[^"]+ Z" fill="#654321"/', $svg) === 1,
+            'Both previews must fill the two stack members even with their original line style.'
+        );
+    }
+    $form = json_decode($preview->GetConfigurationForm(), true, 512, JSON_THROW_ON_ERROR);
+    $sourceList = findGaugeFormElement($form['elements'], 'Sources');
+    foreach ($stored as $name => $value) {
+        ${$name} = $value;
+    }
+    $east['Color'] = '#975321';
+    $Sources = new ArrayIterator([$east, $west]);
+    eval(str_replace('ECTS_UpdateTimeSeriesPreviewSourceFromForm($id, ', '$preview->UpdateTimeSeriesPreviewSourceFromForm(', $sourceList['onEdit']));
+    foreach (array_slice($preview->GetTestFormUpdates(), -2) as $update) {
+        $svg = base64_decode(substr($update['Value'], strlen('data:image/svg+xml;base64,')), true);
+        assertGatewayGauge(
+            preg_match('/<path d="[^"]+ Z" fill="#975321"/', $svg) === 1
+            && preg_match('/<path d="[^"]+ Z" fill="#654321"/', $svg) === 1
+            && $stored === $preview->GetTestProperties(),
+            'The generated row callback must include all unsaved list changes in both stack previews.'
+        );
+    }
+})();
 $timeSeries->UpdateTimeSeriesPreviewFromForm(json_encode([
     'Sources' => array_map(
         static fn (int $variableID): array => ['VariableID' => $variableID, 'Label' => 'Source ' . $variableID],
@@ -5659,6 +5837,8 @@ assertGatewayGauge(
         && str_contains($independentTimeSeriesIPSView, '"legendPosition":"hidden"')
         && str_contains($independentTimeSeriesIPSView, '"lineWidthPercent":80')
         && str_contains($independentTimeSeriesIPSView, '"showYAxis":false')
+        && str_contains($independentTimeSeriesIPSView, '"showVerticalGrid":false')
+        && str_contains($timeSeries->GetVisualizationTile(), '"showVerticalGrid":true')
         && str_contains($timeSeries->GetVisualizationTile(), '"key":"1h"')
         && str_contains($timeSeries->GetVisualizationTile(), '"timeAxisLabelFormat":"date-time"')
         && str_contains($timeSeries->GetVisualizationTile(), '"legendPosition":"bottom"')
@@ -6232,7 +6412,7 @@ assertGatewayGauge(
     $conflictingAxesTimeSeries->GetTestStatus() === 202
         && $conflictingAxesDiagnostic['success'] === false
         && $conflictingAxesDiagnostic['status'] === 202
-        && str_contains($conflictingAxesDiagnostic['error'], 'same unit'),
+        && $conflictingAxesDiagnostic['error'] === 'Series sharing a value axis must use the same axis side.',
     'Time Series must reject conflicting sides for a shared unit and return the error diagnostically.'
 );
 
@@ -6429,7 +6609,7 @@ assertGatewayGauge(
         && $categoryPatternData['bar']['style']['barPatternAspectRatio'] === 2.0
         && str_starts_with($categoryPatternData['bar']['style']['barPatternImage'], 'data:image/svg+xml;base64,')
         && str_contains($categoryPatternIPSView, '"barPatternAspectRatio":1')
-        && str_contains($categoryPatternIPSView, 'SymconEChartsPattern'),
+        && str_contains($categoryPatternIPSView, 'eChartsPattern'),
     'Category Bar must use safe, independent SVG patterns for Tile and IPSView.'
 );
 $barCategory->SetTestProperty('BarSVG', base64_encode($largeBackgroundSvg));
@@ -6829,7 +7009,7 @@ assertGatewayGauge(
     'Historical Bar IPSView must use the persistent transport within the output limit.'
 );
 assertGatewayGauge(
-    preg_match('#/hook/SymconECharts/state/5000/([a-f0-9]{32})#', $barHistoryIPSView, $barTransportMatch) === 1,
+    preg_match('#/hook/eCharts/state/5000/([a-f0-9]{32})#', $barHistoryIPSView, $barTransportMatch) === 1,
     'Historical Bar IPSView must provide a targeted persistent state channel.'
 );
 $barStateRequest = ['DataID' => '{E4749B72-912B-E3E3-1C57-D19019FFDD84}']
@@ -6938,6 +7118,7 @@ $barHistoryTile->SetTestProperty('IPSViewRange', 'yesterday');
 $barHistoryTile->SetTestProperty('IPSViewTimeAxisLabelFormat', 'date');
 $barHistoryTile->SetTestProperty('IPSViewUseTileDesign', false);
 $barHistoryTile->SetTestProperty('IPSViewEnableZoom', false);
+$barHistoryTile->SetTestProperty('IPSViewOrientation', 'horizontal');
 $barHistoryTile->SetTestProperty('IPSViewEChartsTheme', 'dark');
 $barHistoryTile->SetTestProperty('IPSViewBarWidthPercent', 45);
 $barHistoryTile->SetTestProperty('IPSViewBarFillMode', 'gradient');
@@ -6953,6 +7134,8 @@ assertGatewayGauge(
     $independentBarHistoryTile['range']['key'] === '1h'
         && $independentBarHistoryTile['theme'] === 'auto'
         && $independentBarHistoryTile['bar']['style']['enableZoom'] === true
+        && $independentBarHistoryTile['bar']['style']['orientation'] === 'vertical'
+        && str_contains($independentBarHistoryIPSView, '"orientation":"horizontal"')
         && str_contains($independentBarHistoryIPSView, '"key":"yesterday"')
         && str_contains($independentBarHistoryIPSView, '"timeAxisLabelFormat":"date"')
         && str_contains($independentBarHistoryIPSView, '"theme":"dark"')
@@ -7788,12 +7971,7 @@ assertGatewayGauge(
         && array_column($polarInheritedFontRow['items'], 'enabled') === [false, false, false],
     'Inherited Polar IPSView design must follow the Tile scale and tracks while disabling independent controls.'
 );
-$GLOBALS['symconTestCopyTarget'] = $polar;
-try {
-    $polar->CopyTileDesignToIPSView();
-} finally {
-    unset($GLOBALS['symconTestCopyTarget']);
-}
+copyDesignAndApplyForm($polar);
 $polarCopiedHTML = $polar->GetIPSViewHTML();
 assertGatewayGauge(
     $polar->GetTestStatus() === IS_ACTIVE
@@ -8381,8 +8559,8 @@ foreach ($requiredGermanFormTexts as $moduleName => $texts) {
     }
 }
 foreach ([
-    \SymconECharts\EChartsGaugeDesign::class,
-    \SymconECharts\EChartsTimeSeriesDesign::class
+    \eCharts\EChartsGaugeDesign::class,
+    \eCharts\EChartsTimeSeriesDesign::class
 ] as $designClass) {
     $individualColumn = null;
     foreach ($designClass::SourceDesignColumns() as $column) {
@@ -8463,12 +8641,7 @@ foreach ([EChartsGaugeMulti::class, EChartsGaugeTacho::class, EChartsGaugeChrono
     $gauge->SetTestProperty('IPSViewChartTitleColor', 0x1000000);
     assertGatewayGauge($validate->invoke($gauge, 'IPSView') !== null, $moduleClass . ' must reject invalid IPSView title colors.');
     $gauge->SetTestProperty('ChartTitleFontSizePercent', 150);
-    $GLOBALS['symconTestCopyTarget'] = $gauge;
-    try {
-        $gauge->CopyTileDesignToIPSView();
-    } finally {
-        unset($GLOBALS['symconTestCopyTarget']);
-    }
+    copyDesignAndApplyForm($gauge);
     $copiedStyle = (new ReflectionMethod($gauge, 'ReadGaugeStyle'))->invoke($gauge, 'IPSView');
     assertGatewayGauge(
         $gauge->GetTestStatus() === IS_ACTIVE
@@ -8512,7 +8685,7 @@ foreach ([
                 static fn (array $item): bool => ($item['type'] ?? null) === 'ExpansionPanel'
             ));
             assertGatewayGauge(
-                array_column($sectionPanels, 'caption') === $expectedDesignerSections[$moduleClass]
+                array_column($sectionPanels, 'caption') === [...$expectedDesignerSections[$moduleClass], 'Schematic color key']
                     && count(array_filter(
                         $sectionPanels,
                         static fn (array $item): bool => ($item['expanded'] ?? null) !== false
@@ -9228,7 +9401,7 @@ foreach ([EChartsBarCategory::class, EChartsBarPolar::class] as $presentedBarCla
     }
 }
 assertGatewayGauge(
-    \SymconECharts\EChartsBarPreview::FormatValue(1234.5, 2, '°C', 'de') === '1.234,50 °C',
+    \eCharts\EChartsBarPreview::FormatValue(1234.5, 2, '°C', 'de') === '1.234,50 °C',
     'Shared Bar preview values must use German decimal and grouping separators when configured.'
 );
 
@@ -10017,12 +10190,7 @@ $scatterOutput->SetTestProperty('ColorMapRangeMode', 'manual');
 $scatterOutput->SetTestProperty('ColorMapMinimum', 0.5);
 $scatterOutput->SetTestProperty('ColorMapMaximum', 99.5);
 $scatterOutput->SetTestProperty('EnableBrush', true);
-$GLOBALS['symconTestCopyTarget'] = $scatterOutput;
-try {
-    $scatterOutput->CopyTileDesignToIPSView();
-} finally {
-    unset($GLOBALS['symconTestCopyTarget']);
-}
+copyDesignAndApplyForm($scatterOutput);
 assertGatewayGauge(
     str_contains($scatterOutput->GetIPSViewHTML(), '"xAxisRangeMode":"manual"')
         && str_contains($scatterOutput->GetIPSViewHTML(), '"valueLabelContent":"both"')
@@ -10078,6 +10246,12 @@ foreach ([
 ] as $chartClass => $previewFields) {
     $chart = new $chartClass();
     $chart->Create();
+    $hasGaugeOrTimePreview = $previewFields[0] !== 'BarPreview';
+    if ($hasGaugeOrTimePreview) {
+        $chart->SetTestProperty('ChartBackgroundColor', 0x3F1257);
+        $chart->SetTestProperty('IPSViewUseTileDesign', false);
+        $chart->SetTestProperty('IPSViewChartBackgroundColor', 0x083522);
+    }
     $form = json_decode($chart->GetConfigurationForm(), true, 512, JSON_THROW_ON_ERROR);
     foreach ($previewFields as $field) {
         $image = findGaugeFormElement($form['elements'], $field);
@@ -10086,6 +10260,49 @@ foreach ([
                 && str_starts_with((string) ($image['image'] ?? ''), 'data:image/svg+xml;base64,'),
             $chartClass . ' must expose an initialized ' . $field . ' preview.'
         );
+        if ($hasGaugeOrTimePreview) {
+            $svg = base64_decode(substr($image['image'], strlen('data:image/svg+xml;base64,')), true);
+            assertGatewayGauge(
+                is_string($svg) && str_contains($svg, $field === $previewFields[0] ? '#3F1257' : '#083522'),
+                $chartClass . ' must initialize ' . $field . ' with the saved chart background.'
+            );
+        }
+    }
+    if ($hasGaugeOrTimePreview) {
+        foreach (['ChartBackgroundColor', 'IPSViewChartBackgroundColor'] as $field) {
+            $action = findGaugeFormElement($form['elements'], $field)['onChange'] ?? '';
+            assertGatewayGauge(
+                str_contains($action, 'PreviewFromForm(') && str_contains($action, '$' . $field),
+                $chartClass . ' must refresh the preview using the draft ' . $field . '.'
+            );
+        }
+        foreach ([
+            [true, false, '#170319'], [false, false, '#202305'], [false, true, '#191207']
+        ] as [$inherit, $adapt, $expectedIPSViewColor]) {
+            $draft = json_encode([
+                'ChartBackgroundColor'        => 0x170319,
+                'IPSViewUseTileDesign'        => $inherit,
+                'IPSViewChartBackgroundColor' => 0x202305,
+                'IPSViewAdaptToBackground'    => $adapt,
+                'IPSViewBackgroundColor'      => 0x191207
+            ], JSON_THROW_ON_ERROR);
+            if ($chart instanceof EChartsTimeSeries) {
+                $chart->UpdateTimeSeriesPreviewFromForm($draft);
+            } else {
+                $chart->UpdateGaugePreviewFromForm($draft);
+                if ($chart instanceof EChartsGaugeSingle) {
+                    $chart->UpdateIPSViewGaugePreviewFromForm($draft);
+                }
+            }
+            foreach (array_slice($chart->GetTestFormUpdates(), -2) as $update) {
+                $svg = base64_decode(substr($update['Value'], strlen('data:image/svg+xml;base64,')), true);
+                $expectedColor = $update['Field'] === $previewFields[0] ? '#170319' : $expectedIPSViewColor;
+                assertGatewayGauge(
+                    is_string($svg) && str_contains($svg, $expectedColor),
+                    $chartClass . ' ' . $update['Field'] . ' must show the effective draft chart background ' . $expectedColor . '.'
+                );
+            }
+        }
     }
     $labelFields = match ($chartClass) {
         EChartsPie::class => ['OutsideLabelAlignment', 'LeaderLineLength', 'LeaderLineLength2',
@@ -10334,12 +10551,7 @@ assertGatewayGauge(
 );
 $parallelFormModule->SetTestProperty('AnimationEnabled', false);
 $parallelFormModule->SetTestProperty('AnimationDuration', 700);
-$GLOBALS['symconTestCopyTarget'] = $parallelFormModule;
-try {
-    $parallelFormModule->CopyTileDesignToIPSView();
-} finally {
-    unset($GLOBALS['symconTestCopyTarget']);
-}
+copyDesignAndApplyForm($parallelFormModule);
 $parallelCopiedIPSView = $parallelFormModule->GetIPSViewHTML();
 assertGatewayGauge(
     $parallelFormModule->GetTestStatus() === IS_ACTIVE
@@ -10710,12 +10922,7 @@ assertGatewayGauge(
     && $sankey->GetTestStatus() === IS_ACTIVE && $sankey->GetTestReferences() === [4711, 4713],
     'Preview reads, invalid current values and unsaved graph edits must not modify saved configuration, status or subscriptions.'
 );
-$GLOBALS['symconTestCopyTarget'] = $sankey;
-try {
-    $sankey->CopyTileDesignToIPSView();
-} finally {
-    unset($GLOBALS['symconTestCopyTarget']);
-}
+copyDesignAndApplyForm($sankey);
 assertGatewayGauge(
     str_contains($sankey->GetIPSViewHTML(), '"orientation":"horizontal"')
         && str_contains($sankey->GetIPSViewHTML(), '"nodeColors":{"load":"#FF0000","other":"#00FF00"}')
@@ -10817,6 +11024,9 @@ foreach (['calendar', 'radar', 'boxplot', 'candlestick', 'funnel', 'pictorial_ba
     })(__DIR__ . '/' . $family . '_integration.php');
     gc_collect_cycles();
 }
+
+require __DIR__ . '/designer_color_parity.php';
+require __DIR__ . '/designer_color_guides.php';
 
 echo "Gateway and Gauge module integration verified.\n";
 

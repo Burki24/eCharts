@@ -6,7 +6,7 @@ gruppiert oder gestapelt möglich. Ohne Normalisierung müssen alle Quellen
 dieselbe wirksame Einheit besitzen. Historische Balken gehören zu
 [EChartsBarHistory](../EChartsBarHistory/README.md).
 
-Installation: Im **Symcon-Modulstore** nach **SymconECharts** suchen.
+Installation: Im **Symcon-Modulstore** nach **eCharts** suchen.
 [Voraussetzungen und Einrichtung](../README.md#installation-und-erstes-diagramm)
 (IP-Symcon 9.0/9.1, PHP 8.5, gemeinsames Gateway).
 Alle technischen Felder, Standardwerte und Quellenparameter stehen in der
@@ -50,6 +50,8 @@ Farbverläufe folgen im normalisierten Modus der normalisierten Wertachse.
 Gespeicherte Farb- und Designwerte werden nicht automatisch geändert.
 
 ## Kategoriennavigation und Abstände
+
+Mit **Reglerdicke (0 = automatisch)** im Kacheldesigner stellst Du die Dicke der Kategoriennavigation auf 1 bis 64 Pixel ein. 0 verwendet die bisherige Automatik (12 Pixel). Probiere auf dem Handy beispielsweise 32 Pixel. Im IPSView-Designer kannst Du bei eigenem Design einen anderen Wert wählen.
 
 Die Grenze von **100 Quellen** gilt insgesamt über alle Kategorien und Reihen.
 Passen sie nicht in den verfügbaren Raum, erscheinen Kategorienschieber und
@@ -101,9 +103,9 @@ ebenfalls einstellbar.
 ## Kachel, IPSView und Vorschau
 
 IPSView verwendet standardmäßig das Kacheldesign. Für eigene Werte zuerst
-**Kacheldesign verwenden** ausschalten. Der Kopierknopf übernimmt das zuletzt
-gespeicherte Kacheldesign einmalig und überschreibt die bisherigen unabhängigen
-IPSView-Designwerte. Die Datenquellen bleiben gemeinsam.
+**Kacheldesign verwenden** ausschalten. Der Kopierknopf übernimmt die aktuellen Kachelfelder in den
+IPSView-Designer. Die Vorschau zeigt auch ungespeicherte Änderungen sofort.
+Mit **Übernehmen** speicherst Du das Design. Die Datenquellen bleiben gemeinsam.
 
 Die SVG-Vorschau reagiert auf ungespeicherte Änderungen. Sie verwendet aktuelle
 Quellen oder deutlich gekennzeichnete Beispieldaten. Der begrenzte Ausschnitt
@@ -147,7 +149,7 @@ oder das Gateway. Alle aufgeführten Argumente beim Symcon-Aufruf übergeben.
 
 | Signatur | Rückgabe und Wirkung |
 | --- | --- |
-| `ECBC_CopyTileDesignToIPSView(int $InstanzID): void` | Kopiert das gespeicherte Kacheldesign, ersetzt die unabhängigen IPSView-Designwerte und wendet sie an; aktiviert unabhängiges Design. |
+| `ECBC_CopyTileDesignToIPSView(int $InstanzID): void` | Überträgt die gespeicherten Kachelwerte in den geöffneten IPSView-Formularentwurf. Erst **Übernehmen** speichert die Kopie. |
 | `ECBC_GetBarData(int $InstanzID): string` | Liest das reguläre konfigurierte Diagrammmodell als JSON; keine Änderung von Quellen oder Archivwerten. |
 | `ECBC_GetBarDiagnostic(int $InstanzID): string` | JSON-Momentaufnahme der Konfigurationsprüfung und letzten Fehlermeldung; kein Nachweis einer erfolgreichen Datenabfrage. |
 | `ECBC_GetIPSViewHTML(int $InstanzID): string` | Vollständiges HTML-Dokument für IPSView; der Rückgabewert bestätigt keine Anzeige in einem Client. |

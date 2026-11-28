@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/archive_period_view.php';
+
 // Uses the existing Candlestick fixture and real Gateway with Kernel doubles.
 (static function (): void
 {
@@ -62,6 +64,7 @@ declare(strict_types=1);
             && $queries[0]['EndTimestamp'] === $data['range']['endTimestamp'], 'Historical windows must retain the bounded raw Gateway request.');
         $chart->now = strtotime('2026-11-01 12:34:00');
         assertGatewayGauge($model() === $data, 'Refreshing later must not shift historical candles.');
+        verifyArchivePeriodView($chart);
         foreach ([$chart->GetVisualizationTile(), $chart->GetIPSViewHTML()] as $html) {
             assertGatewayGauge(
                 str_contains($html, '"requestedStartTimestamp":') && strlen($html) < SYMCON_OUTPUT_BUFFER_LIMIT,
@@ -149,7 +152,7 @@ declare(strict_types=1);
             $chart->SetTestProperty('AbsoluteEnd', '{}');
             $chart->ApplyChanges();
             $legacy = $model();
-            $expected = SymconECharts\CandlestickData::Window($range, 'hour', $chart->now, 'Europe/Berlin');
+            $expected = eCharts\CandlestickData::Window($range, 'hour', $chart->now, 'Europe/Berlin');
             assertGatewayGauge(
                 $legacy['range'] === ['key' => $range, 'startTimestamp' => $expected['StartTimestamp'],
                     'endTimestamp'          => $expected['EndTimestamp'], 'timezone' => 'Europe/Berlin']

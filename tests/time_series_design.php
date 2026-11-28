@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use SymconECharts\EChartsTimeSeriesDesign;
-use SymconECharts\EChartsTimeSeriesPreview;
+use eCharts\EChartsTimeSeriesDesign;
+use eCharts\EChartsTimeSeriesPreview;
 
 require_once __DIR__ . '/../libs/helper/SVGPreviewHelper.php';
 require_once __DIR__ . '/../libs/EChartsAsset.php';
@@ -29,8 +29,8 @@ assertTimeSeriesDesign(
         && ($columns[0]['name'] ?? null) === 'UseIndividualDesign'
         && ($columns[0]['visible'] ?? null) === true
         && ($columns[1]['visible'] ?? null) === false
-        && array_column($axisColumns, 'name') === ['AxisRangeMode', 'AxisMinimum', 'AxisMaximum']
-        && array_column($axisColumns, 'add') === ['auto', 0.0, 100.0]
+        && array_column($axisColumns, 'name') === ['OwnAxis', 'AxisRangeMode', 'AxisMinimum', 'AxisMaximum']
+        && array_column($axisColumns, 'add') === [false, 'auto', 0.0, 100.0]
         && EChartsTimeSeriesDesign::AXIS_RANGE_MODES === ['auto', 'presentation', 'manual']
         && EChartsTimeSeriesDesign::ANNOTATION_TYPES === ['line', 'area']
         && EChartsTimeSeriesDesign::ANNOTATION_LINE_TYPES === ['solid', 'dashed', 'dotted']
@@ -151,6 +151,64 @@ $conflictingAxisPreview = EChartsTimeSeriesPreview::CreateSvg([
 assertTimeSeriesDesign(
     substr_count($conflictingAxisPreview, 'data-preview-axis=') === 1,
     'Conflicting draft axis sides must leave the Time Series preview available.'
+);
+
+$ownAxisSeries = [[...$axisSeries[0], 'axisRange' => ['minimum' => -20.0, 'maximum' => 40.0]],
+    [...$axisSeries[0], 'ownAxis' => true, 'color' => '#780507', 'axisPosition' => 'right',
+        'axisRange'               => ['minimum' => 30.0, 'maximum' => 70.0]]];
+$ownAxisPreview = EChartsTimeSeriesPreview::CreateSvg($ownAxisSeries, 'Two temperatures', 'dark', []);
+assertTimeSeriesDesign(
+    substr_count($ownAxisPreview, 'data-preview-axis=') === 2
+        && str_contains($ownAxisPreview, '>-20 … 40</text>') && str_contains($ownAxisPreview, '>30 … 70</text>')
+        && preg_match('/<line data-preview-axis="right"[^>]*stroke="#780507"/', $ownAxisPreview) === 1,
+    'Two Celsius sources on independent axes must keep separate sides and source colors in the preview.'
+);
+$ownAxisSeries[1]['initiallyVisible'] = false;
+assertTimeSeriesDesign(
+    substr_count(EChartsTimeSeriesPreview::CreateSvg($ownAxisSeries, 'Selection', 'dark', []), 'data-preview-axis=') === 1,
+    'Hiding an own-axis series must hide its axis even if a visible series has the same unit.'
+);
+
+$eightLeftAxes = array_fill(0, 8, [...$axisSeries[0], 'ownAxis' => true, 'initiallyVisible' => false]);
+$eightLeftAxes[7]['initiallyVisible'] = true;
+$lastAxisPreview = EChartsTimeSeriesPreview::CreateSvg($eightLeftAxes, 'Selection', 'dark', []);
+assertTimeSeriesDesign(
+    substr_count($lastAxisPreview, 'data-preview-axis=') === 1
+        && str_contains($lastAxisPreview, 'data-preview-axis="left" x1="70"'),
+    'When only the last of eight left axes is visible, the preview must place it at the plot edge.'
+);
+
+$roof = ['label' => 'East', 'color' => '#345678', 'style' => 'line', 'unit' => 'kW', 'stackGroup' => 1];
+$west = [...$roof, 'label' => 'West', 'color' => '#654321'];
+$stackPreview = EChartsTimeSeriesPreview::CreateSvg([
+    $roof,
+    [...$roof, 'label' => 'Hidden', 'initiallyVisible' => false],
+    $west
+], 'PV', 'dark', ['showValues' => true]);
+assertTimeSeriesDesign(
+    preg_match('/<path d="(M [^"]+) Z" fill="#345678"/', $stackPreview, $firstBand) === 1
+        && preg_match('/<path d="(M [^"]+) Z" fill="#654321"/', $stackPreview, $secondBand) === 1
+        && preg_match('/<path d="(M [^"]+)" fill="none" stroke="#345678"/', $stackPreview, $firstEdge) === 1,
+    'A positive stack group must fill both visible bands in the source colors.'
+);
+$firstCoordinates = preg_split('/ [ML] /', substr($firstEdge[1], 2));
+assertTimeSeriesDesign(
+    str_ends_with($secondBand[1], ' L ' . implode(' L ', array_reverse($firstCoordinates)))
+        && !str_contains($stackPreview, '>Hidden</text>'),
+    'The second visible band must close along the entire first boundary.'
+);
+$separateGroups = EChartsTimeSeriesPreview::CreateSvg([$roof, [...$west, 'stackGroup' => 2]], 'PV', 'dark', []);
+assertTimeSeriesDesign(
+    preg_match('/<path d="[^"]+ L 70 330 Z" fill="#654321"/', $separateGroups) === 1,
+    'Independent stacks must start at the common zero baseline.'
+);
+$unstacked = [...$roof, 'stackGroup' => 0];
+$legacy = $unstacked;
+unset($legacy['stackGroup']);
+assertTimeSeriesDesign(
+    EChartsTimeSeriesPreview::CreateSvg([$unstacked], 'PV', 'dark', []) ===
+        EChartsTimeSeriesPreview::CreateSvg([$legacy], 'PV', 'dark', []),
+    'A zero stack group must preserve the original preview.'
 );
 
 foreach ([

@@ -2,18 +2,21 @@
 
 declare(strict_types=1);
 
-namespace SymconECharts;
+namespace eCharts;
 
 use Burki24\SymconModuleHelper\SVGPreviewHelper;
 
 require_once __DIR__ . '/../libs/EChartsPreviewSourceCount.php';
+require_once __DIR__ . '/../libs/EChartsPeriodPreview.php';
 require_once __DIR__ . '/../libs/EChartsLabelDesign.php';
 require_once __DIR__ . '/../libs/EChartsPreviewSymbol.php';
+require_once __DIR__ . '/../libs/EChartsValueAxisLayout.php';
+require_once __DIR__ . '/../libs/EChartsSliderSize.php';
 
 final class EChartsTimeSeriesPreview
 {
     /**
-     * @param list<array{variableID?:int,label:string,color:string,style:string,unit?:string,axisPosition?:string,design?:array<string,mixed>}> $series
+     * @param list<array{variableID?:int,label:string,color:string,style:string,stackGroup?:int,unit?:string,axisPosition?:string,design?:array<string,mixed>}> $series
      * @param array<string,mixed> $design
      * @param list<array<string,mixed>> $annotations
      */
@@ -28,7 +31,8 @@ final class EChartsTimeSeriesPreview
         array $annotations = [],
         string $timeAxisLabelFormat = 'auto',
         string $sourceCountCaption = 'Preview shows %d of %d sources',
-        string $patternNoticeCaption = 'Large SVG patterns are simplified in the preview.'
+        string $patternNoticeCaption = 'Large SVG patterns are simplified in the preview.',
+        string $periodLabel = ''
     ): string {
         $palette = EChartsAsset::ThemePreviewPalette($theme);
         $allSeries = $series !== [] ? $series : [
@@ -40,6 +44,8 @@ final class EChartsTimeSeriesPreview
             $position = $item['axisPosition'] ?? 'auto';
             $axisSources[] = [
                 'Unit'         => (string) ($item['unit'] ?? ''),
+                'OwnAxis'      => ($item['ownAxis'] ?? false) === true,
+                'AxisRange'    => $item['axisRange'] ?? null,
                 'AxisPosition' => in_array($position, ['auto', 'left', 'right'], true) ? $position : 'auto'
             ];
         }
@@ -48,23 +54,25 @@ final class EChartsTimeSeriesPreview
         } catch (\InvalidArgumentException) {
             foreach ($axisSources as &$axisSource) {
                 $axisSource['AxisPosition'] = 'auto';
+                $axisSource['AxisRange'] = null;
             }
             unset($axisSource);
             $axisModel = EChartsUnitAxes::Build($axisSources);
         }
         foreach ($allSeries as $index => &$item) {
             $item['previewPaletteIndex'] = $index;
+            $item['previewAxisIndex'] = $axisModel['SeriesIndexes'][$index];
         }
         unset($item);
         $series = array_slice(array_values(array_filter(
             $allSeries,
             static fn (array $item): bool => ($item['initiallyVisible'] ?? true) !== false
         )), 0, 4);
-        $visibleUnits = [];
+        $visibleAxes = [];
         $previewPatternBytes = 0;
         $simplifiedPatterns = false;
         foreach ($series as $index => $item) {
-            $visibleUnits[(string) ($item['unit'] ?? '')] ??= $index;
+            $visibleAxes[$item['previewAxisIndex']] ??= $index;
         }
         $fallbackColors = $palette['seriesColors'];
         $effectiveColors = [];
@@ -101,28 +109,53 @@ final class EChartsTimeSeriesPreview
             $palette,
             $adaptToBackground,
             $backgroundColor,
-            $backgroundOpacityPercent
+            $backgroundOpacityPercent,
+            (int) ($design['chartBackgroundColor'] ?? -1)
         );
         $backgroundOpacityPercent = (int) round($background['opacity'] * 100);
         $titleBaseline = max(31, $titleFontSize + 6);
         $legendTop = max(64, $titleBaseline + $legendFontSize + 6);
         $plotTop = $legendPosition === 'top' ? max(92, $legendTop + 20) : max(62, $titleBaseline + 16);
-        $plotBottom = $legendPosition === 'bottom' ? 300 : 330;
+        $sampleBottom = $legendPosition === 'bottom' ? 300 : 330;
+        $sliderSize = ($design['enableZoom'] ?? true)
+            ? EChartsSliderSize::Resolve((int) ($design['zoomSliderSize'] ?? 0), 12) : 0;
+        $plotBottom = $sampleBottom - max(0, $sliderSize - 12);
+        $sampleY = static fn (float $y): float => $plotTop + ($y - $plotTop) * ($plotBottom - $plotTop) / ($sampleBottom - $plotTop);
+        $sideCounts = ['left' => 0, 'right' => 0];
+        if ($showYAxis) {
+            foreach (array_keys($visibleAxes) as $axisIndex) {
+                ++$sideCounts[$axisModel['Axes'][$axisIndex]['position']];
+            }
+        }
+        // The 750-wide sample keeps a margin for the outer labels on each side.
+        $axisStep = EChartsValueAxisLayout::Spacing((int) ($design['valueAxisSpacing'] ?? 0), 90, 120, max($sideCounts) - 1);
+        $plotLeft = 70 + $axisStep * max(0, $sideCounts['left'] - 1);
+        $plotRight = 680 - $axisStep * max(0, $sideCounts['right'] - 1);
+        $plotWidth = $plotRight - $plotLeft;
+        $sampleX = static fn (int $x): int => (int) round($plotLeft + ($x - 70) * $plotWidth / 610);
         $content = '';
         $definitions = '';
 
         if ($showGrid) {
             for ($index = 0; $index < 5; ++$index) {
                 $y = $plotTop + ($plotBottom - $plotTop) * $index / 4;
-                $content .= '<line x1="70" y1="' . self::N($y) . '" x2="680" y2="' . self::N($y)
+                $content .= '<line x1="' . self::N($plotLeft) . '" y1="' . self::N($y) . '" x2="' . self::N($plotRight) . '" y2="' . self::N($y)
                     . '" stroke="' . SVGPreviewHelper::escape($gridColor) . '" stroke-width="1"/>';
             }
         }
+        if ($design['showVerticalGrid'] ?? false) {
+            $verticalGridColor = self::DesignColor($design['verticalGridColor'] ?? '', $palette['track']);
+            for ($index = 0; $index < 3; ++$index) {
+                $x = $plotLeft + $plotWidth * $index / 2;
+                $content .= '<line x1="' . $x . '" y1="' . self::N($plotTop) . '" x2="' . $x . '" y2="' . self::N($plotBottom)
+                    . '" stroke="' . SVGPreviewHelper::escape($verticalGridColor) . '" stroke-width="1"/>';
+            }
+        }
         if ($showXAxis) {
-            $content .= '<line x1="70" y1="' . self::N($plotBottom) . '" x2="680" y2="'
+            $content .= '<line x1="' . self::N($plotLeft) . '" y1="' . self::N($plotBottom) . '" x2="' . self::N($plotRight) . '" y2="'
                 . self::N($plotBottom) . '" stroke="' . SVGPreviewHelper::escape($axisColor !== '' ? $axisColor : $palette['border']) . '"/>';
             foreach (self::TimeAxisLabels($timeAxisLabelFormat) as $index => $label) {
-                $x = 70 + 305 * $index;
+                $x = $plotLeft + $plotWidth * $index / 2;
                 $content .= '<text x="' . self::N($x) . '" y="' . self::N($plotBottom + 19)
                     . '" text-anchor="' . ($index === 0 ? 'start' : ($index === 2 ? 'end' : 'middle'))
                     . '" fill="' . SVGPreviewHelper::escape($axisColor !== '' ? $axisColor : $palette['muted'])
@@ -131,21 +164,31 @@ final class EChartsTimeSeriesPreview
             }
         }
         if ($showYAxis) {
-            foreach ($axisModel['Axes'] as $axis) {
-                if (!array_key_exists($axis['unit'], $visibleUnits)) {
+            $visiblePositions = ['left' => 0, 'right' => 0];
+            foreach ($axisModel['Axes'] as $axisIndex => $axis) {
+                if (!array_key_exists($axisIndex, $visibleAxes)) {
                     continue;
                 }
-                $sourceIndex = $visibleUnits[$axis['unit']];
+                $sourceIndex = $visibleAxes[$axisIndex];
                 $color = $axisColor !== '' ? $axisColor : $effectiveColors[$sourceIndex];
                 $left = $axis['position'] === 'left';
-                $x = $left ? 70 - $axis['positionIndex'] * 12 : 680 + $axis['positionIndex'] * 12;
+                $visiblePosition = $visiblePositions[$axis['position']]++;
+                $x = $left ? $plotLeft - $visiblePosition * $axisStep : $plotRight + $visiblePosition * $axisStep;
                 $content .= '<line data-preview-axis="' . $axis['position'] . '" x1="' . $x
                     . '" y1="' . self::N($plotTop) . '" x2="' . $x . '" y2="'
                     . self::N($plotBottom) . '" stroke="' . SVGPreviewHelper::escape($color) . '"/>';
+                $captionX = $left ? $x + 4 : $x - 4;
+                // Leave room for each unit and range label when the axis lines are close together.
+                $captionTop = $plotTop + ($axisStep < 8 * $axisFontSize ? $visiblePosition * (2 * $axisFontSize + 12) : 0);
+                if (isset($axis['minimum'], $axis['maximum'])) {
+                    $content .= '<text data-preview-axis-range="' . $axis['position'] . '" x="' . $captionX
+                        . '" y="' . self::N($captionTop + $axisFontSize + 3) . '" text-anchor="' . ($left ? 'start' : 'end')
+                        . '" fill="' . SVGPreviewHelper::escape($color) . '" font-size="' . $axisFontSize . '">'
+                        . SVGPreviewHelper::escape($axis['minimum'] . ' … ' . $axis['maximum']) . '</text>';
+                }
                 if ($axis['unit'] !== '') {
-                    $captionX = $left ? 74 + $axis['positionIndex'] * 80 : 676 - $axis['positionIndex'] * 80;
                     $content .= '<text data-preview-axis-unit="' . $axis['position'] . '" x="' . $captionX
-                        . '" y="' . self::N($plotTop - 7) . '" text-anchor="' . ($left ? 'start' : 'end')
+                        . '" y="' . self::N($captionTop - 7) . '" text-anchor="' . ($left ? 'start' : 'end')
                         . '" fill="' . SVGPreviewHelper::escape($color) . '" font-size="' . $axisFontSize . '">'
                         . SVGPreviewHelper::escape(mb_strimwidth($axis['unit'], 0, 8, '…')) . '</text>';
                 }
@@ -168,11 +211,11 @@ final class EChartsTimeSeriesPreview
             $y = $plotTop + ($plotBottom - $plotTop) * ($annotationIndex + 1) / ($annotationCount + 1);
             if (($annotation['type'] ?? 'line') === 'area') {
                 $opacity = max(0, min(100, (int) ($annotation['opacityPercent'] ?? 18))) / 100;
-                $annotationAreas .= '<rect x="70" y="' . self::N($y - 13) . '" width="610" height="26"'
+                $annotationAreas .= '<rect x="' . self::N($plotLeft) . '" y="' . self::N($y - 13) . '" width="' . self::N($plotWidth) . '" height="26"'
                     . ' fill="' . SVGPreviewHelper::escape($color) . '" opacity="' . self::N($opacity) . '"'
                     . ' data-annotation-type="area"/>';
                 if ($label !== '') {
-                    $annotationAreas .= '<text x="675" y="' . self::N($y - 17) . '" text-anchor="end"'
+                    $annotationAreas .= '<text x="' . self::N($plotRight - 5) . '" y="' . self::N($y - 17) . '" text-anchor="end"'
                         . ' fill="' . SVGPreviewHelper::escape($color) . '" font-size="11">'
                         . SVGPreviewHelper::escape($label) . '</text>';
                 }
@@ -184,18 +227,20 @@ final class EChartsTimeSeriesPreview
                 'dotted' => '2 6',
                 default  => ''
             };
-            $annotationLines .= '<line x1="70" y1="' . self::N($y) . '" x2="680" y2="' . self::N($y)
+            $annotationLines .= '<line x1="' . self::N($plotLeft) . '" y1="' . self::N($y) . '" x2="' . self::N($plotRight) . '" y2="' . self::N($y)
                 . '" stroke="' . SVGPreviewHelper::escape($color) . '" stroke-width="' . self::N($lineWidth) . '"'
                 . ($dashArray !== '' ? ' stroke-dasharray="' . $dashArray . '"' : '')
                 . ' data-annotation-type="line"/>';
             if ($label !== '') {
-                $annotationLines .= '<text x="675" y="' . self::N($y - 6) . '" text-anchor="end"'
+                $annotationLines .= '<text x="' . self::N($plotRight - 5) . '" y="' . self::N($y - 6) . '" text-anchor="end"'
                     . ' fill="' . SVGPreviewHelper::escape($color) . '" font-size="11">'
                     . SVGPreviewHelper::escape($label) . '</text>';
             }
         }
         $content .= $annotationAreas;
 
+        $positions = array_map($sampleX, [70, 190, 310, 430, 540, 680]);
+        $stackBands = self::StackedSampleBands($series, $positions, $plotTop, $plotBottom, $smoothLines);
         foreach ($series as $index => $item) {
             $color = $effectiveColors[$index];
             $sourceDesign = is_array($item['design'] ?? null) ? $item['design'] : [];
@@ -215,19 +260,25 @@ final class EChartsTimeSeriesPreview
                 ? max(0, min(100, (int) ($sourceDesign['areaOpacityPercent'] ?? 22))) / 100
                 : $areaOpacity;
             $offset = $index * 24.0;
-            $path = $sourceSmooth
-                ? 'M 70 ' . self::N(250 - $offset)
-                    . ' C 155 ' . self::N(210 + $offset) . ', 225 ' . self::N(270 - $offset)
-                    . ', 310 ' . self::N(185 + $offset / 2)
-                    . ' S 470 ' . self::N(225 - $offset) . ', 540 ' . self::N(135 + $offset)
-                    . ' S 625 ' . self::N(170 + $offset / 2) . ', 680 ' . self::N(105 + $offset)
-                : 'M 70 ' . self::N(250 - $offset)
-                    . ' L 190 ' . self::N(215 + $offset)
-                    . ' L 310 ' . self::N(185 + $offset / 2)
-                    . ' L 430 ' . self::N(225 - $offset)
-                    . ' L 540 ' . self::N(135 + $offset)
-                    . ' L 680 ' . self::N(105 + $offset);
-            if (($item['style'] ?? 'line') === 'area') {
+            $band = $stackBands[$index] ?? null;
+            $valueY = $band['valueY'] ?? $sampleY(185 + $offset / 2);
+            if ($band !== null) {
+                $path = $band['edge'];
+            } elseif ($sourceSmooth) {
+                $path = 'M ' . $positions[0] . ' ' . self::N($sampleY(250 - $offset))
+                    . ' C ' . $sampleX(155) . ' ' . self::N($sampleY(210 + $offset)) . ', ' . $sampleX(225) . ' ' . self::N($sampleY(270 - $offset))
+                    . ', ' . $positions[2] . ' ' . self::N($sampleY(185 + $offset / 2))
+                    . ' S ' . $sampleX(470) . ' ' . self::N($sampleY(225 - $offset)) . ', ' . $positions[4] . ' ' . self::N($sampleY(135 + $offset))
+                    . ' S ' . $sampleX(625) . ' ' . self::N($sampleY(170 + $offset / 2)) . ', ' . $positions[5] . ' ' . self::N($sampleY(105 + $offset));
+            } else {
+                $path = 'M ' . $positions[0] . ' ' . self::N($sampleY(250 - $offset))
+                    . ' L ' . $positions[1] . ' ' . self::N($sampleY(215 + $offset))
+                    . ' L ' . $positions[2] . ' ' . self::N($sampleY(185 + $offset / 2))
+                    . ' L ' . $positions[3] . ' ' . self::N($sampleY(225 - $offset))
+                    . ' L ' . $positions[4] . ' ' . self::N($sampleY(135 + $offset))
+                    . ' L ' . $positions[5] . ' ' . self::N($sampleY(105 + $offset));
+            }
+            if ($band !== null || ($item['style'] ?? 'line') === 'area') {
                 $fill = $color;
                 $fillMode = (string) ($sourceDesign['areaFillMode'] ?? 'color');
                 if ($fillMode === 'gradient') {
@@ -260,8 +311,8 @@ final class EChartsTimeSeriesPreview
                         $fill = 'url(#' . $patternID . ')';
                     }
                 }
-                $content .= '<path d="' . $path . ' L 680 ' . self::N($plotBottom) . ' L 70 '
-                    . self::N($plotBottom) . ' Z" fill="' . SVGPreviewHelper::escape($fill)
+                $returnPath = $band['returnPath'] ?? ('L ' . $positions[5] . ' ' . self::N($plotBottom) . ' L ' . $positions[0] . ' ' . self::N($plotBottom));
+                $content .= '<path d="' . $path . ' ' . $returnPath . ' Z" fill="' . SVGPreviewHelper::escape($fill)
                     . '" opacity="' . self::N($sourceAreaOpacity) . '"/>';
             }
             $dashArray = match ((string) ($sourceDesign['lineType'] ?? 'solid')) {
@@ -275,8 +326,8 @@ final class EChartsTimeSeriesPreview
             if ($sourceSymbol !== 'none') {
                 $content .= self::Symbol(
                     $sourceSymbol,
-                    310.0,
-                    185 + $offset / 2,
+                    $positions[2],
+                    $valueY,
                     $sourceSymbolRadius,
                     $color
                 );
@@ -284,8 +335,8 @@ final class EChartsTimeSeriesPreview
             if ($showValues) {
                 $unit = trim((string) ($item['unit'] ?? ''));
                 $placement = EChartsLabelDesign::PreviewRect(
-                    310,
-                    185 + $offset / 2,
+                    $positions[2],
+                    $valueY,
                     0,
                     0,
                     $valueLabelPosition === 'auto' ? 'top' : $valueLabelPosition,
@@ -294,10 +345,20 @@ final class EChartsTimeSeriesPreview
                 $content .= '<text data-preview-value-label="true" x="' . self::N($placement['x'])
                     . '" y="' . self::N($placement['y']) . '" text-anchor="' . $placement['anchor']
                     . '" fill="' . SVGPreviewHelper::escape($valueColor) . '" font-size="' . $valueFontSize . '">'
-                    . SVGPreviewHelper::escape('42' . ($unit !== '' ? ' ' . $unit : '')) . '</text>';
+                    . SVGPreviewHelper::escape(($band['value'] ?? 42) . ($unit !== '' ? ' ' . $unit : '')) . '</text>';
             }
         }
         $content .= $annotationLines;
+
+        if ($sliderSize > 0) {
+            $sliderY = $plotBottom + 23;
+            $content .= '<rect data-preview-zoom="horizontal" x="' . self::N($plotLeft) . '" y="' . $sliderY
+                . '" width="' . self::N($plotWidth) . '" height="' . $sliderSize . '" rx="2" fill="'
+                . SVGPreviewHelper::escape($palette['track']) . '" stroke="' . SVGPreviewHelper::escape($palette['border']) . '"/>'
+                . '<rect x="' . self::N($plotLeft + $plotWidth * 0.15) . '" y="' . $sliderY
+                . '" width="' . self::N($plotWidth * 0.7) . '" height="' . $sliderSize . '" rx="2" fill="'
+                . SVGPreviewHelper::escape($palette['accent']) . '" fill-opacity="0.4"/>';
+        }
 
         if ($legendPosition !== 'hidden') {
             $legendY = $legendPosition === 'bottom' ? 352 : $legendTop;
@@ -335,11 +396,11 @@ final class EChartsTimeSeriesPreview
 
         if ($simplifiedPatterns) {
             $svg = substr($svg, 0, -strlen('</svg>'))
-                . '<text x="20" y="365" font-size="11" fill="' . SVGPreviewHelper::escape($palette['muted'])
+                . '<text x="20" y="380" font-size="11" fill="' . SVGPreviewHelper::escape($palette['muted'])
                 . '" data-preview-patterns-simplified="true">' . SVGPreviewHelper::escape($patternNoticeCaption) . '</text></svg>';
         }
         return EChartsPreviewSourceCount::Append(
-            $svg,
+            EChartsPeriodPreview::Apply($svg, $periodLabel !== '', $periodLabel, $palette),
             count($series),
             count($allSeries),
             $sourceCountCaption,
@@ -347,6 +408,66 @@ final class EChartsTimeSeriesPreview
             730,
             380
         );
+    }
+
+    /**
+     * @param list<array<string,mixed>> $series visible preview sources
+     * @param list<int> $positions sample X coordinates within the visible plot
+     * @return array<int,array{edge:string,returnPath:string,valueY:float,value:int}>
+     */
+    private static function StackedSampleBands(array $series, array $positions, int $top, int $bottom, bool $smoothLines): array
+    {
+        $groups = [];
+        foreach ($series as $index => $item) {
+            $group = $item['stackGroup'] ?? 0;
+            if ($group > 0) {
+                $groups[$group][] = $index;
+            }
+        }
+        if ($groups === []) {
+            return [];
+        }
+        $profile = [8, 28, 42, 34, 20, 5];
+        $scale = ($bottom - $top) / (50 * max(array_map('count', $groups)));
+        $bands = [];
+        foreach ($groups as $indices) {
+            $lower = array_fill_keys($positions, (float) $bottom);
+            $lowerSmooth = false;
+            foreach ($indices as $ordinal => $index) {
+                $sample = $ordinal % 2 === 0 ? $profile : array_reverse($profile);
+                $upper = [];
+                foreach ($positions as $point => $x) {
+                    $upper[$x] = $lower[$x] - $sample[$point] * $scale;
+                }
+                $smooth = $series[$index]['design']['smoothLine'] ?? $smoothLines;
+                $bands[$index] = [
+                    'edge'       => self::SamplePath($upper, $smooth, 'M'),
+                    'returnPath' => self::SamplePath(array_reverse($lower, true), $lowerSmooth, 'L'),
+                    'valueY'     => $upper[$positions[2]],
+                    'value'      => $sample[2]
+                ];
+                $lower = $upper;
+                $lowerSmooth = $smooth;
+            }
+        }
+        return $bands;
+    }
+
+    /** @param array<int,float> $points ordered x => y coordinates of one edge */
+    private static function SamplePath(array $points, bool $smooth, string $firstCommand): string
+    {
+        $segments = [];
+        $previousX = null;
+        foreach ($points as $x => $y) {
+            $command = $previousX === null ? $firstCommand : 'L';
+            if ($smooth && $previousX !== null) {
+                $middle = self::N(($previousX + $x) / 2);
+                $command = 'C ' . $middle . ' ' . self::N($points[$previousX]) . ' ' . $middle . ' ' . self::N($y);
+            }
+            $segments[] = $command . ' ' . $x . ' ' . self::N($y);
+            $previousX = $x;
+        }
+        return implode(' ', $segments);
     }
 
     private static function DesignColor(mixed $value, string $fallback): string

@@ -6,7 +6,7 @@ historischen Zeitraum. Jedes Feld steht für einen Kalendertag. Es kann als
 native Symcon-Kachel und optional als eigenständiges IPSView-HTML-Widget
 verwendet werden.
 
-Installation: Im **Symcon-Modulstore** nach **SymconECharts** suchen.
+Installation: Im **Symcon-Modulstore** nach **eCharts** suchen.
 [Voraussetzungen und Einrichtung](../README.md#installation-und-erstes-diagramm)
 (IP-Symcon 9.0/9.1, PHP 8.5, gemeinsames Gateway).
 Alle technischen Felder, Standardwerte und Quellenparameter stehen in der
@@ -103,6 +103,16 @@ oder selbst festgelegt werden. IPSView erbt standardmäßig das Kacheldesign;
 alternativ kann es unabhängig gestaltet werden. Die Formularvorschau verwendet
 gekennzeichnete Beispieldaten und löst beim Bearbeiten keine Archivabfrage aus.
 
+### Zeitraum im Diagramm wechseln
+
+Aktiviere **Zeitraumauswahl anzeigen** im Kacheldesigner oder im eigenständigen IPSView-Designer.
+Im Diagramm kannst Du dann direkt zum aktuellen Monat, Quartal oder Jahr wechseln. Diese
+Auswahl richtet sich nach dem heutigen Datum in der Symcon-Zeitzone. Mit den vorhandenen
+Pfeilen blätterst Du im gewählten Zeitraum. Über **Standard** kehrst Du zur konfigurierten
+Ansicht zurück, auch bei einem festen historischen Zeitraum.
+
+Die Auswahl gilt für die geöffnete Ansicht. Beim erneuten Öffnen gilt wieder der konfigurierte Zeitraum.
+
 ## Konfigurationsreferenz und Skriptzugriff
 
 Die [Feldreferenz](../docs/KONFIGURATION.md#echartscalendar) enthält
@@ -128,7 +138,7 @@ oder das Gateway. Alle aufgeführten Argumente beim Symcon-Aufruf übergeben.
 
 | Signatur | Rückgabe und Wirkung |
 | --- | --- |
-| `ECCL_CopyTileDesignToIPSView(int $InstanzID): void` | Kopiert das gespeicherte Kacheldesign, ersetzt die unabhängigen IPSView-Designwerte und wendet sie an; aktiviert unabhängiges Design. |
+| `ECCL_CopyTileDesignToIPSView(int $InstanzID): void` | Überträgt die gespeicherten Kachelwerte in den geöffneten IPSView-Formularentwurf. Erst **Übernehmen** speichert die Kopie. |
 | `ECCL_GetCalendarData(int $InstanzID): string` | Liest das reguläre konfigurierte Diagrammmodell als JSON; keine Änderung von Quellen oder Archivwerten. |
 | `ECCL_GetCalendarDiagnostic(int $InstanzID): string` | JSON-Momentaufnahme der Konfigurationsprüfung und letzten Fehlermeldung; kein Nachweis einer erfolgreichen Datenabfrage. |
 | `ECCL_GetIPSViewHTML(int $InstanzID): string` | Vollständiges HTML-Dokument für IPSView; der Rückgabewert bestätigt keine Anzeige in einem Client. |

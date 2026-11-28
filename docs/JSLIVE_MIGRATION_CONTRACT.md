@@ -1,4 +1,4 @@
-# JSLive → SymconECharts: Export-/Importvertrag 1.0
+# JSLive → eCharts: Export-/Importvertrag 1.0
 
 - Vertragskennung: `de.burki24.jslive-echarts`
 - Formatversion: `1.0`
@@ -13,7 +13,7 @@
   [Migrationsabnahme](JSLIVE_MIGRATION_ABNAHME.md).
 - Entscheidungen: [ECharts ADR 0109](adr/0109-jslive-migration-contract.md) und
   [JSLive ADR 0007](https://github.com/Burki24/JSLive/blob/dev/docs/adr/0007-echarts-migration-contract.md).
-- Kanonische Quelle ist dieses Dokument im Repository SymconECharts. JSLive
+- Kanonische Quelle ist dieses Dokument im Repository eCharts. JSLive
   referenziert denselben Vertrag; es gibt keine unabhängig gepflegte Zweitfassung.
 
 ## 1. Ziel und unveränderliche Bedingungen
@@ -23,7 +23,7 @@ ECharts-Diagramme übernommen werden. Quellen, historische Datenbedeutung und
 Darstellung haben gleichrangige Erhaltungsanforderungen. Ein optisch ähnliches
 Diagramm mit anderen Berechnungen ist keine vollständige Übernahme.
 
-JSLive erzeugt das Paket. SymconECharts prüft, plant, zeigt Vorschau und Bericht
+JSLive erzeugt das Paket. eCharts prüft, plant, zeigt Vorschau und Bericht
 und erzeugt nach ausdrücklicher Bestätigung neue Zielinstanzen. Export und
 Analyse sind lesend. Bestehende JSLive-/ECharts-Konfigurationen, Quellvariablen,
 Variablen-IDs, Werte, Actions, Profile, native Darstellungen, Archivierung,
@@ -59,7 +59,7 @@ Die erste ausliefernde Version und unterstützte ältere Konfigurationen werden
 erst mit bestandenem Hersteller-/Verbraucher-Vertragstest eingetragen.
 
 Beide Libraries bleiben eigenständig. JSLive besitzt Erfassung und Export;
-SymconECharts besitzt Mapping, Zielvalidierung und Importjournal. Quellenprüfung,
+eCharts besitzt Mapping, Zielvalidierung und Importjournal. Quellenprüfung,
 Zeitplanung, Formatierung und Vorschau verwenden vorhandene ECharts-Bausteine.
 Gemeinsame reine Präsentationskonvertierung oder Paketvalidierung gehört bei
 tatsächlicher Nutzung beider Libraries in Symcon_ModuleHelper, einschließlich
@@ -376,7 +376,7 @@ Reihen-/Achsen-Overrides und versteckte Elemente bleiben erhalten. Originale
 Winkel und Einheiten werden samt dokumentierter Zielumrechnung erfasst.
 
 JSLive besitzt keine zwei gleichartigen nativen Kachel-/IPSView-Designer wie
-SymconECharts. Ein JSLive-Ausgangsdesign dient daher als ausdrücklich geprüfte
+eCharts. Ein JSLive-Ausgangsdesign dient daher als ausdrücklich geprüfte
 Basis für beide neuen Ausgaben; bestehende eigene ECharts-Designs werden nicht
 überschrieben. Kachelheader-Inset und IPSView-Frame sind Ausgabeadapter, keine
 Anweisung, alte Inhalte abzuschneiden. Explizite Altfarben/-schriften haben
@@ -453,6 +453,16 @@ Zielregel samt Auswirkung nennen; keine pauschale Freigabe aller Warnungen.
 
 ## 10. Vorschau, Bestätigung, Wiederholung und Rückfall
 
+Die anfängliche Quellenzuordnung vergleicht numerische native Wertdarstellungen
+gemäß [ADR 0112](adr/0112-jslive-source-presentation-equivalence.md) semantisch:
+bekannte fehlende Standardfelder, exakt gleiche Integer-/Float-Grenzen und das
+numerisch wirkungslose `MULTILINE=false` dürfen sich strukturell unterscheiden.
+`presentationComparisons` protokolliert die Regeln. Original-Snapshots und
+Zielmodell bleiben unverändert; die Ausführung bindet weiterhin den vollständigen
+aktuellen Quell-Fingerabdruck und verlangt bei späteren Änderungen einen neuen
+Plan. Unbekannte Felder, echte Formatänderungen und Archivabweichungen bleiben
+blockierend. Das Austauschformat bleibt Version 1.0.
+
 1. **Analysieren:** Paket lokal prüfen, Quellen/Archive lesen, Ressourcen und
    Zielunterstützung prüfen. Keine Zielinstanz, kein Gateway und kein Skript
    wird hierbei erzeugt. Metadaten-Snapshots mit dem aktuellen Zustand vergleichen.
@@ -490,6 +500,18 @@ und Journalfortschritt rechtfertigt keinen erneuten blinden Erzeugungsaufruf.
 Nicht eindeutig rekonstruierbare Restobjekte blockieren den Wiederanlauf bis
 zur ausdrücklichen Zuordnung; gleiche Namen sind kein Nachweis. Eine einzelne
 Symcon-Erzeugung wird nicht als atomare Transaktion mit dem Journal vorausgesetzt.
+
+Die Vorschau verwendet `de.burki24.echarts.import-preview`, der bestätigbare
+Plan `de.burki24.echarts.import-plan`. Nach einem Modulupdate muss der aktuelle
+Plan bestätigt werden. Bereits begonnene Importe behalten ihre Ziel- und Journal-ID.
+Beim Laden der gespeicherten Instanz migriert das Gateway sein Journalattribut.
+Journalabrufe liefern die aktuelle Markierung `eCharts:JSLive:1:` auch für
+frühere Einträge. Beim bestätigten Wiederaufruf prüft das Gateway die Zielinstanz,
+ihre Ausgaben und deren gespeicherte Eigentumsnachweise. Erst dann stellt es
+die Markierungen in den Objektinformationen und die Ausgabeprüfsummen um.
+Das Journal hält diesen Schritt bis zur vollständigen Verifikation offen.
+Ein Abbruch kann mit derselben Zielinstanz fortgesetzt werden. Abweichende
+Eigentumsnachweise oder manuell bearbeitete Ziele stoppen die Umstellung.
 
 Teilimporte sind pro Chart nachvollziehbar, nie pauschal erfolgreich. Keine
 automatische Löschung vorhandener oder zwischenzeitlich bearbeiteter Ziele.
@@ -561,9 +583,11 @@ Kantenglättung von verschobener Geometrie, fehlenden Reihen oder falschen Farbe
 
 Die vereinbarte technische Migrationsabnahme einschließlich J01 ist damit
 abgeschlossen. Tatsächliche Testlücken bleiben in der Migrationsabnahme benannt.
-Vor Einreichung sind tatsächlicher Umfang, Release-Commit samt CI/Metadaten,
-Store-Unterlagen und Termin erneut abzugleichen. Es gibt durch diese
-Spezifikation keine neue Library-Version, keinen Termin und keine Veröffentlichung.
+Die erste öffentliche Beta ist seit 03.11.2026 veröffentlicht; der Status und
+die Nachweise stehen in den [Beta-Unterlagen](BETA_STORE.md). Für weitere
+Einreichungen sind tatsächlicher Umfang, Release-Commit samt CI/Metadaten
+und Store-Unterlagen erneut abzugleichen. Diese Spezifikation veröffentlicht
+selbst keine neue Version und verändert keine Release-Metadaten.
 
 ### Grenzen der lesenden Vorschau
 

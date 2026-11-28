@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use SymconECharts\EChartsDataProtocol;
+use eCharts\EChartsDataProtocol;
 
 (static function (): void
 {
@@ -97,7 +97,7 @@ use SymconECharts\EChartsDataProtocol;
         assertGatewayGauge(count($requests) - $before === 2 && $data['panels'][1]['cells'][0]['value'] === 77.0
             && $chart->GetTestReferences() === [58001], 'Repeated IDs compare different periods and deduplicate exact requests/references.');
         $tile = $chart->GetVisualizationTile();
-        preg_match('#/hook/SymconECharts/state/5000/([a-f0-9]{32})#', $tile, $channel);
+        preg_match('#/hook/eCharts/state/5000/([a-f0-9]{32})#', $tile, $channel);
         foreach (['tile', 'ipsview'] as $output) {
             $baseKey = $output === 'tile' ? $data['heatmap']['viewKey'] : $bootstrap($chart->GetIPSViewHTML())['chart']['heatmap']['viewKey'];
             $request = ['DataID' => '{E4749B72-912B-E3E3-1C57-D19019FFDD84}'] + EChartsDataProtocol::CreateRequest('ipsview.state', [
@@ -110,6 +110,22 @@ use SymconECharts\EChartsDataProtocol;
                 && $prior['panels'][1]['heatmap']['startDate'] === '2026-07-01'
                 && $chart->GetTestProperties() === $properties, 'Authenticated navigation shifts all views without property writes.');
         }
+        $chart->SetTestProperty('IPSViewEnablePeriodSelection', true);
+        $request['Payload']['Output'] = 'ipsview';
+        $request['Payload']['Period'] = '1w';
+        $state = EChartsDataProtocol::DecodeResponse($chart->ReceiveData(json_encode($request, JSON_THROW_ON_ERROR)), 'ipsview.state')['Payload']['State'];
+        assertGatewayGauge(
+            $state['viewPeriod'] === '1w' && $state['chart']['panels'][0]['heatmap']['startDate'] === '2026-09-30'
+            && $state['chart']['panels'][1]['heatmap']['startDate'] === '2026-09-23' && $read()['heatmap']['range'] === '1m',
+            'The view-selected week must preserve each panel offset and the configured default.'
+        );
+        $request['Payload']['Period'] = '12m';
+        $before = count($requests);
+        assertGatewayGauge(
+            $chart->ReceiveData(json_encode($request, JSON_THROW_ON_ERROR)) === '' && count($requests) === $before,
+            'A comparison preset beyond the shared seven-query budget is rejected before reading.'
+        );
+        $chart->SetTestProperty('IPSViewEnablePeriodSelection', false);
         // Independent scales permit mixed native units, shared scales fail before any request.
         $GLOBALS['symconTestVariables'][58002]['Presentation']['SUFFIX'] = '%';
         $chart->SetTestProperty('UseVariablePresentation', true);

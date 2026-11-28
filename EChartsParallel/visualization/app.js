@@ -9,7 +9,7 @@
     var positionLabel = document.getElementById('echarts-parallel-position');
     var previousButton = document.getElementById('echarts-parallel-previous');
     var nextButton = document.getElementById('echarts-parallel-next');
-    var axisPosition = window.SymconEChartsCategoryNavigation.create();
+    var axisPosition = window.eChartsCategoryNavigation.create();
     var geometry = null;
     var anchorFraction = 0;
     var lastScrollLeft = 0;
@@ -174,8 +174,7 @@
         var titleSize = design.fontSizePercent(style.titleFontSizePercent, 18);
         var titleLayout = design.chartTitleLayout(bootstrap, parallel.title, titleSize);
         var showTitle = titleLayout.show;
-        var backgroundColor = bootstrap.mode === 'ipsview' && bootstrap.options.adaptToBackground === true
-            ? 'transparent' : colors.background;
+        var backgroundColor = design.chartBackground(bootstrap, model, colors.background);
         var lineColor = style.lineColor || colors.accent;
         var axisColor = style.axisColor || colors.text;
         var axisTitleSize = design.fontSizePercent(style.axisFontSizePercent, compact ? 10 : 12);

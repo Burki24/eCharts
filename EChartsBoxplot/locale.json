@@ -1,6 +1,9 @@
 {
     "translations": {
         "de": {
+            "Show period selection": "Zeitraumauswahl anzeigen",
+            "Chart background": "Diagrammhintergrund",
+            "Select a valid chart background color.": "Bitte eine gültige Farbe für den Diagrammhintergrund wählen.",
             "Whisker model": "Whisker-Modell",
             "The Boxplot settings are invalid.": "Die Boxplot-Einstellungen sind ungültig.",
             "Minimum and maximum (default)": "Minimum und Maximum (Standard)",
@@ -72,6 +75,7 @@
             "Border width": "Rahmenbreite",
             "Box opacity": "Boxdeckkraft",
             "Border color": "Rahmenfarbe",
+            "Slider thickness (0 = automatic)": "Reglerdicke (0 = automatisch)",
             "Show grid": "Raster anzeigen",
             "Show axis labels": "Achsenbeschriftungen anzeigen",
             "Title size": "Titelgröße",

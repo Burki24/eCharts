@@ -2,11 +2,12 @@
 
 declare(strict_types=1);
 
-namespace SymconECharts;
+namespace eCharts;
 
 use InvalidArgumentException;
 
 require_once __DIR__ . '/EChartsSvgImage.php';
+require_once __DIR__ . '/EChartsValueAxisForm.php';
 
 /**
  * Source-specific design contract for ECharts time-series lines and areas.
@@ -67,32 +68,7 @@ final class EChartsTimeSeriesDesign
     /** @return list<array<string, mixed>> */
     public static function AxisRangeColumns(): array
     {
-        return [
-            [
-                'caption' => 'AxisRangeMode',
-                'name'    => 'AxisRangeMode',
-                'width'   => '1px',
-                'visible' => false,
-                'save'    => true,
-                'add'     => 'auto'
-            ],
-            [
-                'caption' => 'AxisMinimum',
-                'name'    => 'AxisMinimum',
-                'width'   => '1px',
-                'visible' => false,
-                'save'    => true,
-                'add'     => 0.0
-            ],
-            [
-                'caption' => 'AxisMaximum',
-                'name'    => 'AxisMaximum',
-                'width'   => '1px',
-                'visible' => false,
-                'save'    => true,
-                'add'     => 100.0
-            ]
-        ];
+        return EChartsValueAxisForm::Columns();
     }
 
     /** @return list<array<string, mixed>> */
@@ -109,17 +85,11 @@ final class EChartsTimeSeriesDesign
             ]],
             ['type' => 'RowLayout', 'items' => [
                 ['type' => 'Select', 'name' => 'Style', 'caption' => 'Style', 'options' => self::Options(['line', 'area'])],
+                ['type' => 'NumberSpinner', 'name' => 'StackGroup', 'caption' => 'Stack group (0 = separate)', 'minimum' => 0, 'maximum' => 32],
                 ['type' => 'Select', 'name' => 'Reducer', 'caption' => 'Reducer', 'options' => self::Options(['auto', 'average', 'sum', 'minimum', 'maximum'])],
                 ['type' => 'Select', 'name' => 'AxisPosition', 'caption' => 'Axis side', 'options' => self::Options(['auto', 'left', 'right'])]
             ]],
-            ['type' => 'ExpansionPanel', 'caption' => 'Value axis range', 'expanded' => false, 'items' => [
-                ['type' => 'RowLayout', 'items' => [
-                    ['type' => 'Select', 'name' => 'AxisRangeMode', 'caption' => 'Axis range', 'options' => self::Options(self::AXIS_RANGE_MODES)],
-                    ['type' => 'NumberSpinner', 'name' => 'AxisMinimum', 'caption' => 'Axis minimum', 'digits' => 3],
-                    ['type' => 'NumberSpinner', 'name' => 'AxisMaximum', 'caption' => 'Axis maximum', 'digits' => 3]
-                ]],
-                ['type' => 'Label', 'caption' => 'Automatic sources adopt an explicit range of their unit group. Conflicting explicit ranges for the same unit are invalid.']
-            ]],
+            EChartsValueAxisForm::Panel(),
             ['type' => 'CheckBox', 'name' => 'UseIndividualDesign', 'caption' => 'Use individual series design'],
             ['type' => 'ExpansionPanel', 'caption' => 'Line and data points', 'expanded' => false, 'items' => [
                 ['type' => 'RowLayout', 'items' => [
@@ -148,7 +118,7 @@ final class EChartsTimeSeriesDesign
     public static function AnnotationEditorForm(): array
     {
         return [
-            ['type' => 'SelectVariable', 'name' => 'VariableID', 'caption' => 'Source', 'validVariableTypes' => [1, 2]],
+            ['type' => 'SelectVariable', 'name' => 'VariableID', 'caption' => 'Assigned time series', 'validVariableTypes' => [1, 2]],
             ['type' => 'RowLayout', 'items' => [
                 ['type' => 'Select', 'name' => 'Type', 'caption' => 'Marker type', 'options' => [
                     ['caption' => 'Reference line', 'value' => 'line'],
@@ -166,7 +136,7 @@ final class EChartsTimeSeriesDesign
                 ['type' => 'Select', 'name' => 'LineType', 'caption' => 'Line type', 'options' => self::Options(self::ANNOTATION_LINE_TYPES)],
                 ['type' => 'NumberSpinner', 'name' => 'LineWidthPercent', 'caption' => 'Line width', 'minimum' => 50, 'maximum' => 200, 'suffix' => ' %']
             ]],
-            ['type' => 'Label', 'caption' => 'Reference lines use Value. Value ranges use Value as minimum and Maximum as upper boundary.']
+            ['type' => 'Label', 'caption' => 'For a line at 25 °C, select the temperature series and enter 25 under Value / minimum. For a humidity range of 40–60 %, select the humidity series and enter 40 under Value / minimum and 60 under Maximum.']
         ];
     }
 

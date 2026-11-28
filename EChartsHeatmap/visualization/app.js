@@ -25,6 +25,8 @@
     var currentState = bootstrap.state || null;
     var currentOffset = 0;
     var navigating = false;
+    var viewPeriod = '';
+    var periodRevision = 0;
     var loadError = 'The Heatmap values could not be loaded.';
     var retainOnTransientError = design.createTransientFailureRetainer(
         { get hidden() { return chartElement.hidden && (!comparisonElement || comparisonElement.hidden); } },
@@ -142,9 +144,10 @@
         todayElement.disabled = navigating || currentOffset === 0;
     }
 
-    function buildOption(model, themeId, surface, panel) {
+    function buildOption(model, themeId, surface, panel, chartModel) {
         surface = surface || chartElement;
         var colors = colorsFor(themeId);
+        var background = design.chartBackground(bootstrap, chartModel || model, colors.background);
         var heatmap = model.heatmap || {};
         var style = heatmap.style || {};
         var cells = Array.isArray(model.cells) ? model.cells : [];
@@ -236,8 +239,7 @@
         }
 
         return {
-            backgroundColor: bootstrap.mode === 'ipsview' && bootstrap.options.adaptToBackground === true
-                ? 'transparent' : colors.background,
+            backgroundColor: background,
             ...design.animationOptions(style, { enabled: true, initialDuration: 350, updateDuration: 500 }),
             aria: { enabled: true, description: String(heatmap.title || translate('Heatmap'))
                 + ': ' + periodText(heatmap)
@@ -273,14 +275,14 @@
                 axisLabel: { color: style.axisColor || colors.text, fontSize: axisSize,
                     interval: compact ? 5 : 2 },
                 axisLine: { lineStyle: { color: style.axisColor || colors.border } },
-                splitArea: { show: true, areaStyle: { color: [colors.background] } },
+                splitArea: { show: true, areaStyle: { color: [background] } },
                 splitLine: { show: true, lineStyle: { color: style.gridColor || colors.border, opacity: 0.25 } }
             },
             yAxis: {
                 type: 'category', data: days, inverse: true,
                 axisLabel: { color: style.axisColor || colors.text, fontSize: axisSize },
                 axisLine: { lineStyle: { color: style.axisColor || colors.border } },
-                splitArea: { show: true, areaStyle: { color: [colors.background] } },
+                splitArea: { show: true, areaStyle: { color: [background] } },
                 splitLine: { show: true, lineStyle: { color: style.gridColor || colors.border, opacity: 0.25 } }
             },
             visualMap: visualMap,
@@ -387,8 +389,7 @@
         theme = nextTheme;
         var colors = colorsFor(nextTheme);
         var style = model.heatmap.style || {};
-        comparisonElement.style.background = bootstrap.mode === 'ipsview' && bootstrap.options.adaptToBackground === true
-            ? 'transparent' : colors.background;
+        comparisonElement.style.background = design.chartBackground(bootstrap, model, colors.background);
         comparisonTitleElement.textContent = model.heatmap.title || '';
         comparisonTitleElement.hidden = !model.heatmap.title;
         comparisonTitleElement.style.color = style.titleColor || colors.text;
@@ -408,7 +409,7 @@
             item.empty.textContent = translate('No completed archive hours in the selected range.');
             item.empty.style.color = colors.text;
             item.empty.hidden = panel.cells.length > 0;
-            var option = buildOption(panel, nextTheme, item.surface, true);
+            var option = buildOption(panel, nextTheme, item.surface, true, model);
             item.surface.setAttribute('aria-label', option.aria.description);
             item.chart.resize();
             item.chart.setOption(option, true);
@@ -458,7 +459,9 @@
 
     function stateURL(offset) {
         var path = bootstrap.options && bootstrap.options.heatmapStatePath;
-        if (!path || !/^\/hook\/SymconECharts\/state\//.test(path)) { throw new Error('Missing state path.'); }
+        if (!path || !/^\/hook\/eCharts\/state\//.test(path)) { throw new Error('Missing state path.'); }
+        var request = path + '?offset=' + offset + (bootstrap.mode === 'symcon' ? '&output=tile' : '');
+        if (window.eChartsPeriodSelection) { return window.eChartsPeriodSelection.withPeriod(request); }
         var location = window.location || {};
         var protocol = location.protocol;
         var host = location.host;
@@ -474,14 +477,14 @@
                 host = window.top.location.host;
             }
         }
-        return protocol + '//' + host + path + '?offset=' + offset
-            + (bootstrap.mode === 'symcon' ? '&output=tile' : '');
+        return protocol + '//' + host + request;
     }
 
     function navigate(offset) {
         if (navigating || offset < 0 || offset > maxOffset(currentState && currentState.chart
             ? currentState.chart.heatmap || {} : {})
             || !currentState || !currentState.chart) { return; }
+        var revision = periodRevision;
         navigating = true;
         updatePeriod(currentState.chart.heatmap || {},
             ((bootstrap.options && bootstrap.options.tileHeaderInset) || 8));
@@ -494,6 +497,7 @@
                     return response.json();
                 })
                 .then(function (state) {
+                    if (revision !== periodRevision) { return; }
                     if (!state || state.status !== 'ready' || !state.chart
                         || !sameView(state.chart.heatmap, requestedView)
                         || state.chart.heatmap.windowOffset !== offset) {
@@ -502,10 +506,12 @@
                     if (currentState && currentState.chart && sameView(currentState.chart.heatmap, requestedView)) { render(state); }
                 })
                 .catch(function () {
+                    if (revision !== periodRevision) { return; }
                     warningElement.textContent = translate(loadError);
                     warningElement.hidden = false;
                 })
                 .finally(function () {
+                    if (revision !== periodRevision) { return; }
                     navigating = false;
                     if (currentState && currentState.chart) {
                         updatePeriod(currentState.chart.heatmap || {},
@@ -528,6 +534,12 @@
     window.handleMessage = function (message) {
         var state = design.parseVisualizationState(message);
         if (!state) { return; }
+        if ((state.viewPeriod || '') !== viewPeriod) {
+            viewPeriod = state.viewPeriod || '';
+            periodRevision += 1;
+            navigating = false;
+            currentOffset = 0;
+        }
         if (currentOffset > 0 && state.chart && state.chart.heatmap
             && state.chart.heatmap.windowOffset === 0 && currentState && currentState.chart
             && sameView(state.chart.heatmap, currentState.chart.heatmap)) {

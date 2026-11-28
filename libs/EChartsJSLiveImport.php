@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace SymconECharts;
+namespace eCharts;
 
 use Burki24\SymconModuleHelper\VariablePresentationNormalizationHelper;
 use InvalidArgumentException;
@@ -10,6 +10,7 @@ use stdClass;
 use Throwable;
 
 require_once __DIR__ . '/EChartsJSLivePackage.php';
+require_once __DIR__ . '/EChartsJSLivePresentation.php';
 require_once __DIR__ . '/helper/VariablePresentationNormalizationHelper.php';
 require_once __DIR__ . '/EChartsValueRange.php';
 
@@ -59,7 +60,7 @@ final class EChartsJSLiveImport
             return $copy;
         }, $package->charts);
         $sameInstallation = $installationID !== null && strcasecmp($package->sourceInstallation->id, $installationID) === 0;
-        $report = ['format'   => 'de.burki24.symconecharts.import-preview', 'formatVersion' => '1.0',
+        $report = ['format'   => 'de.burki24.echarts.import-preview', 'formatVersion' => '1.0',
             'ruleVersion'     => self::RULE_VERSION, 'packageHash' => EChartsImportJson::Hash($package),
             'revisionHash'    => EChartsImportJson::Hash($revision), 'sameInstallation' => $sameInstallation,
             'exportSnapshot'  => ['exportId' => $package->exportId, 'createdAt' => $package->createdAt,
@@ -186,7 +187,8 @@ final class EChartsJSLiveImport
                 $row['currentFingerprint'] = EChartsImportJson::Hash($current);
                 $normalized = self::Presentation($source->presentation, $source->variableType);
                 $row['native'] = EChartsJSLivePackage::Wire($normalized['native']);
-                if (EChartsImportJson::Canonical(EChartsJSLivePackage::Wire($current['native'] ?? null)) !== EChartsImportJson::Canonical(EChartsJSLivePackage::Wire($normalized['native']))) {
+                $row['presentationComparison'] = EChartsJSLivePresentation::Compare($normalized['native'], $current['native'] ?? null, $source->variableType);
+                if ($row['presentationComparison']['status'] === 'different') {
                     $result['issues'][] = self::Issue('SOURCE_CHANGED', $chart->chartKey, $pointer . '/presentation', 'Current native source metadata differs from the export snapshot.', 'Export again or review a fresh source mapping.');
                     $result['verdicts']['sourcesArchive'] = 'blocked';
                 }

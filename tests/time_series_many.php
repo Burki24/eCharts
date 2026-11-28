@@ -76,6 +76,133 @@ declare(strict_types=1);
     };
 
     try {
+        require_once __DIR__ . '/cartesian_period_selection.php';
+        verifyCartesianPeriodSelection($configure([$sources[0]], 'raw', 200), $now, $requests);
+        $temperature = array_replace($sources[0], ['Unit' => '°C', 'Label' => 'Temperatur']);
+        $humidity = array_replace($sources[1], ['Unit' => '%', 'Label' => 'Feuchtigkeit']);
+        $GLOBALS['symconTestVariables'][96999] = ['VariableType' => 3, 'VariableUpdated' => $now, 'Value' => '55 %', 'Name' => 'Feuchtigkeit als Text'];
+        $output = $configure([$temperature], 'hour', 200);
+        $output->SetTestLanguage('de');
+        $output->SetTestProperty('EnableIPSView', true);
+        foreach ([
+            [[$temperature, $humidity], [], null],
+            [[$temperature + ['StackGroup' => 1], $humidity + ['StackGroup' => 1]], [], 'Alle Quellen einer Stapelgruppe müssen dieselbe Einheit verwenden.'],
+            [[$temperature, $temperature], [], 'Eine Variable ist mehrfach in der Quellenliste eingetragen.'],
+            [[$temperature, false], [], 'Zeitreihenquelle 2 ist ungültig.'],
+            [[$temperature, array_replace($humidity, ['VariableID' => 0])], [], 'Für Quelle 2 eine vorhandene Variable auswählen.'],
+            [[$temperature, array_replace($humidity, ['VariableID' => 96999])], [], 'Für Quelle 2 eine Variable vom Typ Integer oder Float auswählen.'],
+            [[], [], 'Zwischen 1 und 32 Zeitreihenquellen konfigurieren.'],
+            [[$temperature, $humidity], [['VariableID' => $temperature['VariableID'], 'Value' => 25], ['VariableID' => $humidity['VariableID'], 'Type' => 'area', 'Value' => 40, 'Maximum' => 60]], null],
+            [[$temperature], [['VariableID' => $temperature['VariableID'], 'Value' => 15], ['VariableID' => $humidity['VariableID'], 'Value' => 50]], 'Referenzlinien und Wertebereiche, Zeile 2: Eine Variable aus „Zeitreihenquellen“ auswählen oder diese Markierung löschen.'],
+            [[$temperature], [], null]
+        ] as [$rows, $annotations, $expectedError]) {
+            $output->SetTestProperty('Sources', json_encode($rows, JSON_THROW_ON_ERROR));
+            $output->SetTestProperty('Annotations', json_encode($annotations, JSON_THROW_ON_ERROR));
+            $before = $output->GetTestProperties();
+            $output->ApplyChanges();
+            assertGatewayGauge($output->GetTestProperties() === $before, 'Configuration errors and recovery must preserve the submitted properties.');
+            foreach ([$output->GetVisualizationTile(), $output->GetTestVariableValue('IPSViewTimeSeries')] as $html) {
+                $state = $startup($html);
+                if ($expectedError === null) {
+                    assertGatewayGauge(
+                        $state['status'] === 'ready' && count($state['chart']['series']) === count($rows),
+                        'Both outputs must show the configured independent series after applying valid settings.'
+                    );
+                    assertGatewayGauge(count($state['chart']['annotations']) === count($annotations), 'Markers must remain optional.');
+                    if ($annotations !== []) {
+                        [$line, $area] = $state['chart']['annotations'];
+                        assertGatewayGauge(
+                            $line['seriesIndex'] === 0 && $line['type'] === 'line' && $line['value'] == 25
+                                && $area['seriesIndex'] === 1 && $area['type'] === 'area'
+                                && $area['value'] == 40 && $area['maximum'] == 60,
+                            'Line and range must use the fixed thresholds on the assigned temperature and humidity series.'
+                        );
+                    }
+                } else {
+                    assertGatewayGauge(
+                        $state['status'] === 'error' && $state['chart'] === null && $state['error'] === $expectedError,
+                        'Both outputs must show the specific German configuration error: ' . $expectedError
+                    );
+                }
+            }
+        }
+        unset($output);
+
+        $outdoor = array_replace($temperature, ['AxisPosition' => 'left', 'AxisRangeMode' => 'manual',
+            'AxisMinimum'                                      => -20, 'AxisMaximum' => 40]);
+        $hotWater = array_replace($sources[1], ['Unit' => '°C', 'OwnAxis' => true,
+            'AxisPosition'                             => 'right', 'AxisRangeMode' => 'manual', 'AxisMinimum' => 30, 'AxisMaximum' => 70]);
+        $independent = $configure([$outdoor, $hotWater], 'realtime', 200);
+        $independent->ApplyChanges();
+        $axisModel = $decode($independent);
+        assertGatewayGauge(
+            array_column($axisModel['series'], 'axisIndex') === [0, 1]
+            && array_column($axisModel['axes'], 'position') === ['left', 'right']
+            && array_column($axisModel['axes'], 'minimum') === [-20.0, 30.0]
+            && array_column($axisModel['axes'], 'maximum') === [40.0, 70.0],
+            'Two temperature sources must retain distinct sides, explicit ranges and series assignments.'
+        );
+
+        $spacingRows = [$outdoor, array_replace($humidity, ['AxisPosition' => 'left', 'AxisRangeMode' => 'manual',
+            'AxisMinimum'                                                  => 0, 'AxisMaximum' => 100]),
+            array_replace($hotWater, ['VariableID' => $sources[2]['VariableID']])];
+        $spacing = $configure($spacingRows, 'realtime', 200);
+        $spacing->SetTestProperty('EnableIPSView', true);
+        $spacing->SetTestProperty('ValueAxisSpacing', 24);
+        $spacing->SetTestProperty('IPSViewValueAxisSpacing', 48);
+        $spacing->SetTestProperty('ZoomSliderSize', 30);
+        $spacing->SetTestProperty('IPSViewZoomSliderSize', 45);
+        foreach ([true, false] as $inherited) {
+            $spacing->SetTestProperty('IPSViewUseTileDesign', $inherited);
+            $spacing->ApplyChanges();
+            $form = json_decode($spacing->GetConfigurationForm(), true, 512, JSON_THROW_ON_ERROR);
+            foreach ([['', 24], ['IPSView', $inherited ? 24 : 48]] as [$prefix, $expected]) {
+                $html = $prefix === '' ? $spacing->GetVisualizationTile() : $spacing->GetIPSViewHTML();
+                $axisField = findGaugeFormElement($form['elements'], $prefix . 'ValueAxisSpacing');
+                $preview = findGaugeFormElement($form['elements'], $prefix . 'TimeSeriesPreview')['image'];
+                $svg = base64_decode(substr($preview, strlen('data:image/svg+xml;base64,')), true);
+                $slider = findGaugeFormElement($form['elements'], $prefix . 'ZoomSliderSize');
+                $size = $prefix === '' || $inherited ? 30 : 45;
+                assertGatewayGauge(
+                    $slider['minimum'] === 0 && $slider['maximum'] === 64
+                    && str_contains($slider['onChange'], '$' . $prefix . 'ZoomSliderSize')
+                    && $startup($html)['chart']['chart']['design']['zoomSliderSize'] === $size
+                    && preg_match('/data-preview-zoom="horizontal"[^>]+height="' . $size . '"/', $svg) === 1,
+                    'Both outputs and previews must use their effective slider thickness.'
+                );
+                assertGatewayGauge(
+                    $startup($html)['chart']['chart']['design']['valueAxisSpacing'] === $expected
+                    && $axisField['minimum'] === 0 && $axisField['maximum'] === 120
+                    && str_contains($axisField['onChange'], '$' . $prefix . 'ValueAxisSpacing')
+                    && preg_match_all('/data-preview-axis="left" x1="([\d.]+)"/', $svg, $matches) === 2
+                    && (float) $matches[1][0] - (float) $matches[1][1] === (float) $expected
+                    && preg_match_all('/data-preview-axis-range="left"[^>]* y="([\d.]+)"/', $svg, $labels) === 2
+                    && (float) $labels[1][1] - (float) $labels[1][0] >= 11,
+                    'Both outputs and form previews must respect inherited and independent axis spacing.'
+                );
+            }
+        }
+        $saved = $spacing->GetTestProperties();
+        $spacing->UpdateTimeSeriesPreviewFromForm('{"ValueAxisSpacing":18,"IPSViewValueAxisSpacing":30,"ZoomSliderSize":18,"IPSViewZoomSliderSize":30}');
+        foreach ([['TimeSeriesPreview', 18], ['IPSViewTimeSeriesPreview', 30]] as [$field, $expected]) {
+            $updates = array_values(array_filter($spacing->GetTestFormUpdates(), static fn (array $row): bool => $row['Field'] === $field));
+            $svg = base64_decode(substr(end($updates)['Value'], strlen('data:image/svg+xml;base64,')), true);
+            assertGatewayGauge(
+                preg_match_all('/data-preview-axis="left" x1="([\d.]+)"/', $svg, $matches) === 2
+                && (float) $matches[1][0] - (float) $matches[1][1] === (float) $expected
+                && str_contains($svg, '<path d="M ' . $matches[1][0] . ' ')
+                && preg_match('/data-preview-zoom="horizontal"[^>]+height="' . $expected . '"/', $svg) === 1
+                && $spacing->GetTestProperties() === $saved,
+                'Each unsaved spacing must move its preview axes and the plotted samples without persisting the draft.'
+            );
+        }
+        copyDesignAndApplyForm($spacing);
+        assertGatewayGauge(
+            $spacing->GetTestProperties()['IPSViewValueAxisSpacing'] === 24
+            && $spacing->GetTestProperties()['IPSViewZoomSliderSize'] === 30,
+            'Copying the tile design must include axis spacing and slider thickness.'
+        );
+
         $old = $configure(array_slice($sources, 0, 8), 'realtime', 2000);
         $defaults = (new TestableEChartsTimeSeries());
         $defaults->Create();
@@ -89,11 +216,65 @@ declare(strict_types=1);
         $oldModel = $decode($old);
         assertGatewayGauge(
             $old->GetTestProperties() === $oldProperties && count($oldModel['series']) === 8
+            && count($oldModel['axes']) === 1 && array_unique(array_column($oldModel['series'], 'axisIndex')) === [0]
             && count(array_filter(array_column($oldModel['series'], 'initiallyVisible'))) === 8,
             'Old eight-source configurations must remain byte-identical and initially show every row.'
         );
 
         $rows = array_slice($sources, 0, 32);
+        $stackRows = [];
+        foreach ([[6, 5, 2, 1], [6, 2, 1], [6, 5, 4, 3, 2, 1]] as $index => $minutes) {
+            $id = 97001 + $index;
+            $stackRows[] = array_merge($sources[$index], [
+                'VariableID'       => $id,
+                'Unit'             => 'kW',
+                'StackGroup'       => $index < 2 ? 32 : 1,
+                'InitiallyVisible' => $index !== 1
+            ]);
+            $GLOBALS['symconTestVariables'][$id] = $GLOBALS['symconTestVariables'][$sources[$index]['VariableID']];
+            $samples = [];
+            foreach (array_reverse($minutes) as $minute) {
+                $samples[] = ['TimeStamp' => $now - 60 * $minute, 'Avg' => (float) ($minute - 1)];
+            }
+            $GLOBALS['symconTestArchiveVariables'][$id] = ['AggregationType' => 0, 'LoggedValues' => [], 'AggregatedValues' => $samples];
+        }
+        $stacked = $configure($stackRows, 'minute', 300);
+        $stacked->SetTestProperty('EnableIPSView', true);
+        $stacked->ApplyChanges();
+        $stackModel = $decode($stacked);
+        assertGatewayGauge(
+            array_column($stackModel['series'], 'stackGroup') === [32, 32, 1]
+            && array_column($stackModel['series'], 'style') === ['area', 'area', 'area']
+            && $stackModel['range']['stackGapTimestamps'] === [32 => [$now - 240]]
+            && $stackModel['series'][0]['points'] === [[$now - 360, 5.0], [$now - 300, 4.0], [$now - 120, 1.0], [$now - 60, 0.0]]
+            && $stackModel['series'][1]['initiallyVisible'] === false
+            && $stackModel['range']['pointLimitPerSeries'] === 100
+            && $stacked->GetTestProperties()['Sources'] === json_encode($stackRows, JSON_THROW_ON_ERROR),
+            'Stacks preserve original archive points, zeros, hidden contributors, group bounds and configured styles; only a fully missing span gets a break marker.'
+        );
+        $mixedUnits = $stackRows;
+        $mixedUnits[1]['Unit'] = 'W';
+        foreach ([[$mixedUnits, 'auto'], [$stackRows, 'raw'], [$stackRows, 'realtime']] as [$invalidRows, $mode]) {
+            $invalidStack = $configure($invalidRows, $mode);
+            $invalidStack->ApplyChanges();
+            assertGatewayGauge($invalidStack->GetTestStatus() === 202, 'Mixed units and unsynchronized raw or realtime stacks must be rejected.');
+        }
+        foreach ([-1, 33, '1'] as $invalidGroup) {
+            $invalidRows = $stackRows;
+            $invalidRows[0]['StackGroup'] = $invalidGroup;
+            $invalidStack = $configure($invalidRows, 'auto');
+            $invalidStack->ApplyChanges();
+            assertGatewayGauge($invalidStack->GetTestStatus() === 202, 'Stack groups must be integers between 0 and 32.');
+        }
+        $berlin = new DateTimeZone('Europe/Berlin');
+        $localDay = static fn (string $date): int => (new DateTimeImmutable($date, $berlin))->getTimestamp();
+        foreach ([['2026-03-29', '2026-03-30', '2026-03-31', '2026-04-01'], ['2026-10-25', '2026-10-26', '2026-10-27', '2026-10-28']] as [$first, $second, $missing, $last]) {
+            $dailyStack = [['stackGroup' => 1, 'points' => [[$localDay($first), 2], [$localDay($second), 0], [$localDay($last), 3]]]];
+            assertGatewayGauge(
+                \eCharts\EChartsArchiveStack::GapTimestamps($dailyStack, 1, 'Europe/Berlin') === [1 => [$localDay($missing)]],
+                'Daily stack breaks must follow local calendar days across both DST boundaries.'
+            );
+        }
         foreach ($rows as $index => &$row) {
             $row['InitiallyVisible'] = $index < 4;
         }
